@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* MedAsset — Hospital Asset Intelligence Design System
+/* SNHRC — Material Management System Design System
    All colors MUST be HSL. Tokens drive the entire UI. */
 
 @layer base {

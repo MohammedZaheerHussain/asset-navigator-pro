@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Skills & Plugins
+skills/
+skills-lock.json
+.agents/
+.agent/
+
+# Planning artifacts
+.planning/
+
+# RTK
+.rtk/

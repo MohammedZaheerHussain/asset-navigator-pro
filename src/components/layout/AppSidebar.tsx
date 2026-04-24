@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
-  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Stethoscope,
+  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,16 +51,19 @@ export function AppSidebar() {
         "flex items-center gap-2.5 px-4 h-16 border-b border-sidebar-border",
         collapsed && "px-2 justify-center"
       )}>
-        <div className="h-9 w-9 rounded-xl bg-gradient-primary text-primary-foreground flex items-center justify-center shadow-glow shrink-0">
-          <Stethoscope className="h-5 w-5" />
-        </div>
+        <img
+          src="/snhrc-logo.jpg"
+          alt="SNHRC Logo"
+          className="h-9 w-9 rounded-xl object-contain shrink-0"
+        />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
-            <span className="font-bold text-sm text-sidebar-foreground">MedAsset</span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">SNHRC Network</span>
+            <span className="font-bold text-sm text-sidebar-foreground">Material Management</span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">SNHRC</span>
           </div>
         )}
       </div>
+
 
       <SidebarContent className="px-2 py-2">
         {sections.map((section) => (
