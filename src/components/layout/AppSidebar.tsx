@@ -1,5 +1,5 @@
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
@@ -44,6 +44,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -104,10 +105,16 @@ export function AppSidebar() {
       </SidebarContent>
 
       <div className="mt-auto border-t border-sidebar-border p-2">
-        <button className={cn(
-          "w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
-          collapsed && "justify-center"
-        )}>
+        <button
+          onClick={() => {
+            localStorage.removeItem("snhrc_auth");
+            navigate("/login");
+          }}
+          className={cn(
+            "w-full flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors",
+            collapsed && "justify-center"
+          )}
+        >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span>Logout</span>}
         </button>
