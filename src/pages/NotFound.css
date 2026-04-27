@@ -1,0 +1,188 @@
+/* ─────────────────────────────────────────────
+   SNHRC 404 Page — Premium Branded
+   ───────────────────────────────────────────── */
+
+.notfound-page {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: linear-gradient(135deg, hsl(220 20% 97%), hsl(24 95% 98%));
+  overflow: hidden;
+  padding: 2rem;
+}
+
+/* ── Decorative Shapes ── */
+.notfound-bg-shapes {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.notfound-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.06;
+}
+
+.shape-1 {
+  width: 500px;
+  height: 500px;
+  background: hsl(24, 88%, 58%);
+  top: -120px;
+  right: -80px;
+  animation: floatSlow 18s ease-in-out infinite;
+}
+
+.shape-2 {
+  width: 350px;
+  height: 350px;
+  background: hsl(188, 55%, 42%);
+  bottom: -100px;
+  left: -60px;
+  animation: floatSlow 22s ease-in-out infinite reverse;
+}
+
+.shape-3 {
+  width: 200px;
+  height: 200px;
+  background: hsl(222, 30%, 14%);
+  top: 40%;
+  left: 55%;
+  animation: floatSlow 15s ease-in-out infinite 3s;
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(20px, -15px) scale(1.03); }
+  66%      { transform: translate(-12px, 10px) scale(0.97); }
+}
+
+/* ── Card ── */
+.notfound-card {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 440px;
+  width: 100%;
+  padding: 3rem 2.5rem;
+  background: hsla(0, 0%, 100%, 0.85);
+  backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid hsla(220, 18%, 90%, 0.6);
+  box-shadow:
+    0 4px 24px hsla(222, 30%, 14%, 0.06),
+    0 1px 4px hsla(222, 30%, 14%, 0.04);
+}
+
+/* Logo */
+.notfound-logo {
+  margin-bottom: 1.5rem;
+}
+
+.notfound-logo img {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 2px 8px hsla(24, 88%, 58%, 0.15);
+}
+
+/* 404 Code */
+.notfound-code {
+  font-size: 6rem;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(135deg, hsl(24, 88%, 58%), hsl(24, 88%, 45%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.03em;
+}
+
+/* Title */
+.notfound-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: hsl(222, 30%, 14%);
+  margin-bottom: 0.75rem;
+}
+
+/* Description */
+.notfound-desc {
+  font-size: 0.88rem;
+  color: hsl(220, 12%, 46%);
+  line-height: 1.55;
+  margin-bottom: 2rem;
+}
+
+.notfound-desc code {
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  background: hsl(220, 20%, 94%);
+  font-size: 0.82rem;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  color: hsl(0, 75%, 50%);
+  word-break: break-all;
+}
+
+/* Actions */
+.notfound-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.notfound-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.notfound-btn.primary {
+  background: hsl(222, 30%, 14%);
+  color: #fff;
+}
+
+.notfound-btn.primary:hover {
+  background: hsl(24, 88%, 55%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px hsla(24, 88%, 58%, 0.3);
+}
+
+.notfound-btn.secondary {
+  background: hsl(220, 18%, 94%);
+  color: hsl(222, 30%, 20%);
+}
+
+.notfound-btn.secondary:hover {
+  background: hsl(220, 18%, 88%);
+  transform: translateY(-1px);
+}
+
+/* Footer */
+.notfound-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: hsl(220, 12%, 55%);
+  letter-spacing: 0.02em;
+}
+
+.notfound-footer svg {
+  color: hsl(220, 12%, 62%);
+}
