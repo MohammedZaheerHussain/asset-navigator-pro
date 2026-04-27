@@ -1,0 +1,426 @@
+/* ─────────────────────────────────────────────
+   SNHRC Login Page — Premium Split-Screen
+   ───────────────────────────────────────────── */
+
+/* ── Layout ── */
+.login-page {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: hsl(220 20% 97%);
+}
+
+/* ── Left Hero ── */
+.login-hero {
+  position: relative;
+  flex: 1 1 50%;
+  display: none;
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .login-hero {
+    display: flex;
+  }
+}
+
+.login-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.login-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    hsla(222, 30%, 14%, 0.35) 0%,
+    hsla(222, 30%, 14%, 0.55) 50%,
+    hsla(222, 30%, 14%, 0.8) 100%
+  );
+}
+
+.login-hero-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  padding: 2.5rem;
+  color: #fff;
+}
+
+.login-hero-logo {
+  position: absolute;
+  top: 2rem;
+  left: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.login-hero-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: contain;
+  background: hsla(0, 0%, 100%, 0.15);
+  backdrop-filter: blur(8px);
+  padding: 4px;
+}
+
+.login-hero-logo-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-shadow: 0 2px 8px hsla(0, 0%, 0%, 0.35);
+}
+
+.login-hero-tagline h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 12px hsla(0, 0%, 0%, 0.4);
+}
+.login-hero-tagline p {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+.login-hero-dots {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+.login-hero-dots .dot {
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: hsla(0, 0%, 100%, 0.35);
+  transition: all 0.3s ease;
+}
+.login-hero-dots .dot.active {
+  width: 48px;
+  background: hsl(24, 88%, 58%);
+}
+
+/* ── Right: Form Panel ── */
+.login-form-wrapper {
+  position: relative;
+  flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: #fff;
+}
+@media (max-width: 767px) {
+  .login-form-wrapper {
+    flex: 1 1 100%;
+    background: linear-gradient(
+      135deg,
+      hsl(220 20% 97%) 0%,
+      hsl(0 0% 100%) 50%,
+      hsl(24 95% 97%) 100%
+    );
+  }
+}
+
+.login-badge {
+  position: absolute;
+  top: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  background: hsl(24, 95%, 95%);
+  color: hsl(24, 88%, 45%);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* ── Form ── */
+.login-form {
+  width: 100%;
+  max-width: 420px;
+}
+
+.login-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: hsl(222, 30%, 14%);
+  margin-bottom: 0.35rem;
+}
+
+.login-subtitle {
+  font-size: 0.9rem;
+  color: hsl(220, 12%, 46%);
+  margin-bottom: 1.75rem;
+}
+
+/* Error */
+.login-error {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  background: hsl(0, 80%, 96%);
+  border: 1px solid hsl(0, 65%, 88%);
+  color: hsl(0, 75%, 42%);
+  font-size: 0.82rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  animation: shakeX 0.4s ease;
+}
+
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-6px); }
+  40%      { transform: translateX(6px); }
+  60%      { transform: translateX(-4px); }
+  80%      { transform: translateX(4px); }
+}
+
+/* Fields */
+.login-field {
+  margin-bottom: 1.25rem;
+}
+
+.login-field label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: hsl(222, 30%, 20%);
+  margin-bottom: 0.4rem;
+}
+
+.login-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.login-input-icon {
+  position: absolute;
+  left: 0.85rem;
+  color: hsl(220, 12%, 60%);
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.login-input-wrap input {
+  width: 100%;
+  height: 48px;
+  padding: 0 2.75rem 0 2.75rem;
+  border-radius: 10px;
+  border: 1.5px solid hsl(220, 18%, 88%);
+  background: hsl(220, 20%, 98%);
+  font-size: 0.9rem;
+  color: hsl(222, 30%, 14%);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.login-input-wrap input::placeholder {
+  color: hsl(220, 12%, 62%);
+}
+
+.login-input-wrap input:focus {
+  border-color: hsl(24, 88%, 58%);
+  box-shadow: 0 0 0 3px hsla(24, 88%, 58%, 0.12);
+  background: #fff;
+}
+
+.login-input-wrap input:focus ~ .login-input-icon,
+.login-input-wrap input:focus + .login-input-icon {
+  color: hsl(24, 88%, 58%);
+}
+
+.login-eye-btn {
+  position: absolute;
+  right: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: hsl(220, 12%, 55%);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.login-eye-btn:hover {
+  background: hsl(220, 18%, 94%);
+  color: hsl(24, 88%, 58%);
+}
+
+/* Meta row */
+.login-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.login-remember {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: hsl(222, 30%, 20%);
+  cursor: pointer;
+}
+
+.login-remember input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid hsl(220, 18%, 78%);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s;
+}
+
+.login-remember input[type="checkbox"]:checked {
+  background: hsl(24, 88%, 58%);
+  border-color: hsl(24, 88%, 58%);
+}
+
+.login-remember input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  color: #fff;
+  font-weight: 700;
+}
+
+.login-forgot {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: hsl(24, 88%, 50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.login-forgot:hover {
+  color: hsl(24, 88%, 40%);
+  text-decoration: underline;
+}
+
+.login-forgot-msg {
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  background: hsl(24, 95%, 96%);
+  border: 1px solid hsl(24, 80%, 88%);
+  color: hsl(24, 60%, 35%);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin-bottom: 1.25rem;
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Submit */
+.login-submit {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 10px;
+  background: hsl(222, 30%, 14%);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-submit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, hsl(24, 88%, 58%), hsl(24, 88%, 48%));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.login-submit:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.login-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px hsla(222, 30%, 14%, 0.25);
+}
+
+.login-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.login-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* z-index for text above pseudo */
+.login-submit > * {
+  position: relative;
+  z-index: 1;
+}
+
+.login-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid hsla(0, 0%, 100%, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Restricted notice */
+.login-restricted {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 8px;
+  background: hsl(220, 20%, 97%);
+  border: 1px solid hsl(220, 18%, 90%);
+  font-size: 0.72rem;
+  color: hsl(220, 12%, 46%);
+  line-height: 1.45;
+}
+
+.login-restricted svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: hsl(220, 12%, 55%);
+}

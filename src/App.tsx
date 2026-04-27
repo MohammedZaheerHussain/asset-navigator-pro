@@ -13,9 +13,21 @@ import MaterialTracking from "./pages/MaterialTracking";
 import MaterialTransfer from "./pages/MaterialTransfer";
 import EquipmentList from "./pages/EquipmentList";
 import Reports from "./pages/Reports";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
+
+/** Simple auth check — replace with real auth provider later */
+const isAuthenticated = () => !!localStorage.getItem("snhrc_auth");
+
+/** Guard: redirect to /login if not authenticated */
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -24,7 +36,17 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route element={<AppLayout />}>
+          {/* Public — Login */}
+          <Route path="/login" element={<Login />} />
+
+          {/* Protected — App Shell */}
+          <Route
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/" element={<Dashboard />} />
             <Route path="/masters/branches" element={<BranchMaster />} />
             <Route path="/masters/departments" element={<DepartmentMaster />} />
@@ -36,6 +58,7 @@ const App = () => (
             <Route path="/equipment/other" element={<EquipmentList type="other" />} />
             <Route path="/reports" element={<Reports />} />
           </Route>
+
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
