@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { MapPin, Tag, Wrench, CalendarDays, Bell, FileText, Save } from "lucide-react";
-import { branches, departments, roomsByDept, categories } from "@/lib/mock-data";
+import { branches, departments, roomsByDept } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAppSelector } from "@/store";
@@ -26,6 +26,8 @@ export default function AddAsset() {
   const [childAsset, setChildAsset] = useState(false);
 
   const allMaterials = useAppSelector((s) => s.materials.items);
+  const categoryItems = useAppSelector((s) => s.categories.items);
+  const activeCategories = categoryItems.filter((c) => c.status === "active");
 
   const filteredDepts = departments.filter((d) => d.branchId === branchId);
   const filteredRooms = deptId ? roomsByDept[deptId] ?? [] : [];
@@ -74,7 +76,7 @@ export default function AddAsset() {
             <Field label="Category" required>
               <Select value={category} onValueChange={(v) => { setCategory(v); setItem(""); }}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
-                <SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                <SelectContent>{activeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Item Name" required>

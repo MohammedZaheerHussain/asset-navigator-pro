@@ -12,7 +12,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { categories, units, type Material } from "@/lib/mock-data";
+import { units, type Material } from "@/lib/mock-data";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "sonner";
 import { useAppSelector, useAppDispatch } from "@/store";
@@ -31,6 +31,8 @@ const emptyForm: FormState = { name: "", category: "", unit: "", description: ""
 export default function MaterialMaster() {
   /* ── RTK store ── */
   const rows = useAppSelector((s) => s.materials.items);
+  const categoryItems = useAppSelector((s) => s.categories.items);
+  const activeCategories = categoryItems.filter((c) => c.status === "active");
   const dispatch = useAppDispatch();
 
   /* ── local UI state ── */
@@ -108,7 +110,7 @@ export default function MaterialMaster() {
               <SelectTrigger className="w-52 bg-surface"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {activeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

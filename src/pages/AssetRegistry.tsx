@@ -8,11 +8,12 @@ import { Search, Plus, Package } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { assets, branches, departments, categories, branchById, deptById } from "@/lib/mock-data";
+import { assets, branches, departments, branchById, deptById } from "@/lib/mock-data";
 import { StatusBadge, WarrantyBadge } from "@/components/StatusBadges";
 import { EmptyState } from "@/components/EmptyState";
 import { AssetDetailDrawer } from "@/components/AssetDetailDrawer";
 import { Link } from "react-router-dom";
+import { useAppSelector } from "@/store";
 
 export default function AssetRegistry() {
   const [branchFilter, setBranchFilter] = useState("all");
@@ -20,6 +21,8 @@ export default function AssetRegistry() {
   const [catFilter, setCatFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<typeof assets[number] | null>(null);
+  const categoryItems = useAppSelector((s) => s.categories.items);
+  const activeCategories = categoryItems.filter((c) => c.status === "active");
 
   const deptOptions = branchFilter === "all" ? departments : departments.filter((d) => d.branchId === branchFilter);
 
@@ -70,7 +73,7 @@ export default function AssetRegistry() {
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {activeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
