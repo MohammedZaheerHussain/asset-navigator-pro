@@ -2,7 +2,6 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { AppNavbar } from "./AppNavbar";
-import { QuickAddFab } from "@/components/QuickAddFab";
 
 export function AppLayout() {
   return (
@@ -15,7 +14,6 @@ export function AppLayout() {
             <Outlet />
           </main>
         </div>
-        <QuickAddFab />
       </div>
     </SidebarProvider>
   );
