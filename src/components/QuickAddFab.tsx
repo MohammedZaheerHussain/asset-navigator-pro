@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { branches, departments, categories, itemsByCategory } from "@/lib/mock-data";
+import { branches, departments } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useAppSelector } from "@/store";
 
 export function QuickAddFab() {
   const [open, setOpen] = useState(false);
@@ -20,8 +21,12 @@ export function QuickAddFab() {
   const [category, setCategory] = useState("");
   const [item, setItem] = useState("");
 
+  const categoryItems = useAppSelector((s) => s.categories.items);
+  const activeCategories = categoryItems.filter((c) => c.status === "active");
+  const allMaterials = useAppSelector((s) => s.materials.items);
+
   const filteredDepts = departments.filter((d) => d.branchId === branchId);
-  const filteredItems = category ? itemsByCategory[category] ?? [] : [];
+  const filteredMaterials = category ? allMaterials.filter((m) => m.category === category && m.status === "active") : [];
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +42,7 @@ export function QuickAddFab() {
       <button
         onClick={() => setOpen(true)}
         className={cn(
-          "fixed bottom-6 right-6 z-40 h-14 px-5 rounded-full bg-gradient-primary text-primary-foreground",
+          "fixed bottom-20 right-6 z-40 h-14 px-5 rounded-full bg-gradient-primary text-primary-foreground",
           "flex items-center gap-2 font-semibold text-sm shadow-glow hover:scale-105 transition-transform"
         )}
         aria-label="Quick add asset"
@@ -77,7 +82,7 @@ export function QuickAddFab() {
                 <Select value={category} onValueChange={(v) => { setCategory(v); setItem(""); }}>
                   <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                   <SelectContent>
-                    {categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {activeCategories.map((c) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -86,7 +91,7 @@ export function QuickAddFab() {
                 <Select value={item} onValueChange={setItem} disabled={!category}>
                   <SelectTrigger><SelectValue placeholder={category ? "Select item" : "Select category first"} /></SelectTrigger>
                   <SelectContent>
-                    {filteredItems.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                    {filteredMaterials.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
