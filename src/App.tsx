@@ -8,6 +8,7 @@ import Dashboard from "./pages/Dashboard";
 import BranchMaster from "./pages/BranchMaster";
 import DepartmentMaster from "./pages/DepartmentMaster";
 import MaterialMaster from "./pages/MaterialMaster";
+import CategoryMaster from "./pages/CategoryMaster";
 import AddAsset from "./pages/AddAsset";
 import AssetRegistry from "./pages/AssetRegistry";
 import MaterialTracking from "./pages/MaterialTracking";
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/masters/branches" element={<BranchMaster />} />
             <Route path="/masters/departments" element={<DepartmentMaster />} />
             <Route path="/masters/materials" element={<MaterialMaster />} />
+            <Route path="/masters/categories" element={<CategoryMaster />} />
             <Route path="/assets/add" element={<AddAsset />} />
             <Route path="/assets/registry" element={<AssetRegistry />} />
             <Route path="/tracking" element={<MaterialTracking />} />

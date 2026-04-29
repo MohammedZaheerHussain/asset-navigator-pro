@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
-  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package,
+  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Tags,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ const sections: NavSection[] = [
     { title: "Branch Master",     url: "/masters/branches",    icon: Building2 },
     { title: "Department Master", url: "/masters/departments", icon: Layers },
     { title: "Material Master",   url: "/masters/materials",   icon: Package },
+    { title: "Category Master",   url: "/masters/categories",  icon: Tags },
   ]},
   { label: "Asset Management", items: [
     { title: "Add Asset",      url: "/assets/add",      icon: PackagePlus },
