@@ -46,6 +46,19 @@ export interface Transfer {
   status: "completed" | "in_transit" | "pending";
 }
 
+export type MaterialStatus = "active" | "inactive";
+
+export interface Material {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  description: string;
+  status: MaterialStatus;
+}
+
+export const units = ["Pcs", "Set", "Box", "Pair", "Roll", "Kit", "Bottle"];
+
 export const branches: Branch[] = [
   { id: "b1", code: "SNHRC-MN", name: "SNHRC Main Hospital", alias: "Main" },
   { id: "b2", code: "SNHRC-NW", name: "SNHRC North Wing", alias: "North" },
@@ -90,6 +103,21 @@ export const itemsByCategory: Record<string, string[]> = {
   Other: ["Misc Equipment"],
 };
 
+export const materials: Material[] = [
+  { id: "MAT-0001", name: "Patient Monitor",    category: "Biomedical",          unit: "Pcs", description: "Multi-parameter bedside monitor for ICU",      status: "active" },
+  { id: "MAT-0002", name: "Ventilator",          category: "Biomedical",          unit: "Pcs", description: "Mechanical ventilation system",               status: "active" },
+  { id: "MAT-0003", name: "Defibrillator",       category: "Biomedical",          unit: "Pcs", description: "Automated external defibrillator",            status: "active" },
+  { id: "MAT-0004", name: "Infusion Pump",       category: "Biomedical",          unit: "Pcs", description: "Portable infusion pump for IV therapy",      status: "active" },
+  { id: "MAT-0005", name: "ECG Machine",         category: "Biomedical",          unit: "Pcs", description: "12-lead electrocardiogram device",           status: "active" },
+  { id: "MAT-0006", name: "Workstation PC",      category: "IT Equipment",        unit: "Pcs", description: "Desktop workstation for clinical use",      status: "active" },
+  { id: "MAT-0007", name: "Barcode Scanner",     category: "IT Equipment",        unit: "Pcs", description: "Handheld barcode reader for asset tagging",  status: "active" },
+  { id: "MAT-0008", name: "Hospital Bed",        category: "Furniture",           unit: "Pcs", description: "Electric adjustable hospital bed",          status: "active" },
+  { id: "MAT-0009", name: "Wheelchair",          category: "Furniture",           unit: "Pcs", description: "Standard folding wheelchair",               status: "active" },
+  { id: "MAT-0010", name: "Surgical Light",      category: "Surgical Instrument", unit: "Set", description: "Ceiling-mounted LED surgical light",        status: "active" },
+  { id: "MAT-0011", name: "Ultrasound",          category: "Diagnostic",          unit: "Pcs", description: "Portable diagnostic ultrasound system",     status: "active" },
+  { id: "MAT-0012", name: "X-Ray Machine",       category: "Diagnostic",          unit: "Pcs", description: "Digital radiography system",               status: "active" },
+];
+
 export const assets: Asset[] = [
   { id: "AST-1001", name: "Patient Monitor PM-X", category: "Biomedical", branchId: "b1", departmentId: "d1", room: "ICU-101", make: "Philips", model: "MX450", serial: "PHL-948271", value: 8500, purchaseDate: "2023-03-12", warrantyExpiry: "2026-03-12", status: "active", warrantyStatus: "valid", alertEnabled: true },
   { id: "AST-1002", name: "Ventilator V60", category: "Biomedical", branchId: "b1", departmentId: "d1", room: "ICU-102", make: "Philips", model: "V60", serial: "PHL-553120", value: 21000, purchaseDate: "2021-09-05", warrantyExpiry: "2025-05-15", status: "active", warrantyStatus: "expiring", alertEnabled: true },
@@ -119,3 +147,4 @@ export const recentActivity = [
 
 export const branchById = (id: string) => branches.find((b) => b.id === id);
 export const deptById = (id: string) => departments.find((d) => d.id === id);
+export const materialById = (id: string) => materials.find((m) => m.id === id);

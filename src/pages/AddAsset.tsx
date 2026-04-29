@@ -10,9 +10,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { MapPin, Tag, Wrench, CalendarDays, Bell, FileText, Save } from "lucide-react";
-import { branches, departments, roomsByDept, categories, itemsByCategory } from "@/lib/mock-data";
+import { branches, departments, roomsByDept, categories } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useAppSelector } from "@/store";
 
 export default function AddAsset() {
   const navigate = useNavigate();
@@ -24,9 +25,11 @@ export default function AddAsset() {
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [childAsset, setChildAsset] = useState(false);
 
+  const allMaterials = useAppSelector((s) => s.materials.items);
+
   const filteredDepts = departments.filter((d) => d.branchId === branchId);
   const filteredRooms = deptId ? roomsByDept[deptId] ?? [] : [];
-  const filteredItems = category ? itemsByCategory[category] ?? [] : [];
+  const filteredMaterials = category ? allMaterials.filter((m) => m.category === category && m.status === "active") : [];
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,7 +80,7 @@ export default function AddAsset() {
             <Field label="Item Name" required>
               <Select value={item} onValueChange={setItem} disabled={!category}>
                 <SelectTrigger><SelectValue placeholder={category ? "Select item" : "Select category first"} /></SelectTrigger>
-                <SelectContent>{filteredItems.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}</SelectContent>
+                <SelectContent>{filteredMaterials.map((m) => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <div className="md:col-span-2">
