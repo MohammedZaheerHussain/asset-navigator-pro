@@ -19,8 +19,7 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-/** Simple auth check — replace with real auth provider later */
-const isAuthenticated = () => !!localStorage.getItem("snhrc_auth");
+import { isAuthenticated } from "@/store/apiSlice";
 
 /** Guard: redirect to /login if not authenticated */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {

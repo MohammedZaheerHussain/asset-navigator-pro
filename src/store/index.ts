@@ -1,15 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { useDispatch, useSelector, type TypedUseSelectorHook } from "react-redux";
-import materialsReducer from "./materialsSlice";
+import { api } from "./apiSlice";
 
 /* ──────────────────────────────────────────────
-   SNHRC Redux Store
+   SNHRC Redux Store — RTK Query powered
    ────────────────────────────────────────────── */
 
 export const store = configureStore({
   reducer: {
-    materials: materialsReducer,
+    [api.reducerPath]: api.reducer,
   },
+  middleware: (getDefault) => getDefault().concat(api.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

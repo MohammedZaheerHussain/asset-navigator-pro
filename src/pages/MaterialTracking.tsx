@@ -30,13 +30,12 @@ import {
   DollarSign,
   Truck,
 } from "lucide-react";
-import { StatusBadge, WarrantyBadge } from "@/components/StatusBadges";
+import { StatusBadge } from "@/components/StatusBadges";
 import { EmptyState } from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
 import {
   trackAsset,
   detectTrackingMode,
-  getBarcodeForAsset,
   type TrackingMode,
   type TrackingResult,
   type TrackingError,
@@ -51,21 +50,21 @@ const TABS: { id: TrackingMode; label: string; icon: typeof Search; placeholder:
     label: "Barcode",
     icon: Barcode,
     placeholder: "Scan or enter barcode…",
-    example: "BCR-2948271001",
+    example: "BAR001MRI2024",
   },
   {
     id: "serial",
     label: "Serial Number",
     icon: Hash,
     placeholder: "Enter serial number…",
-    example: "PHL-948271",
+    example: "SN-PHI-MRI-78234",
   },
   {
     id: "asset",
     label: "Asset Code",
     icon: Tag,
     placeholder: "Enter asset code…",
-    example: "AST-1001",
+    example: "AST-MED-001",
   },
 ];
 
@@ -391,13 +390,25 @@ export default function MaterialTracking() {
                         <Tag className="h-3.5 w-3.5" />
                         {result.asset.category}
                       </span>
-                      <span>·</span>
-                      <span>{result.asset.make} {result.asset.model}</span>
+                      {result.asset.description && (
+                        <>
+                          <span>·</span>
+                          <span>{result.asset.description}</span>
+                        </>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
-                    <WarrantyBadge status={result.asset.warrantyStatus} size="md" />
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      result.asset.warrantyStatus === 'active' ? 'bg-green-100 text-green-700' :
+                      result.asset.warrantyStatus === 'expiring' ? 'bg-orange-100 text-orange-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {result.asset.warrantyStatus === 'active' ? 'Warranty Active' :
+                       result.asset.warrantyStatus === 'expiring' ? 'Expiring Soon' :
+                       result.asset.warrantyStatus === 'expired' ? 'Expired' : result.asset.warrantyStatus}
+                    </span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       Updated: {result.lastUpdated}
@@ -428,7 +439,7 @@ export default function MaterialTracking() {
                   <QuickStat
                     icon={DollarSign}
                     label="Value"
-                    value={`₹${result.asset.value.toLocaleString()}`}
+                    value={result.asset.purchaseCost ? `₹${Number(result.asset.purchaseCost).toLocaleString()}` : 'N/A'}
                     accent="warning"
                   />
                 </div>
@@ -441,7 +452,7 @@ export default function MaterialTracking() {
               <DetailCard icon={MapPin} title="Location & Assignment" accent="primary">
                 <DetailRow label="Branch" value={result.branchName} />
                 <DetailRow label="Department" value={result.departmentName} />
-                <DetailRow label="Room" value={result.asset.room} highlight />
+                <DetailRow label="Branch Code" value={result.branchCode} highlight />
                 <DetailRow label="Assigned To" value={result.assignedTo} />
               </DetailCard>
 
@@ -456,71 +467,82 @@ export default function MaterialTracking() {
                 </DetailRow>
                 <DetailRow label="Serial Number">
                   <CopyableCode
-                    value={result.asset.serial}
+                    value={result.asset.serial || 'N/A'}
                     copied={copiedField === "serial"}
                     onCopy={() => handleCopy(result.asset.serial, "serial")}
                   />
                 </DetailRow>
                 <DetailRow label="Barcode">
                   <CopyableCode
-                    value={getBarcodeForAsset(result.asset.id)}
+                    value={result.asset.barcode || 'N/A'}
                     copied={copiedField === "barcode"}
-                    onCopy={() => handleCopy(getBarcodeForAsset(result.asset.id), "barcode")}
+                    onCopy={() => handleCopy(result.asset.barcode, "barcode")}
                   />
                 </DetailRow>
-                <DetailRow label="Make / Model" value={`${result.asset.make} ${result.asset.model}`} />
+                <DetailRow label="Category" value={result.asset.category} />
               </DetailCard>
 
               {/* Warranty Card */}
               <DetailCard icon={ShieldCheck} title="Warranty & Purchase" accent="success">
                 <DetailRow label="Status">
-                  <WarrantyBadge status={result.asset.warrantyStatus} />
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    result.asset.warrantyStatus === 'active' ? 'bg-green-100 text-green-700' :
+                    result.asset.warrantyStatus === 'expiring' ? 'bg-orange-100 text-orange-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {result.asset.warrantyStatus}
+                  </span>
                 </DetailRow>
                 <DetailRow label="Purchase Date">
                   <span className="flex items-center gap-1.5 text-sm font-medium">
                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    {result.asset.purchaseDate}
+                    {result.asset.purchaseDate || 'N/A'}
                   </span>
                 </DetailRow>
                 <DetailRow label="Warranty Expiry">
                   <span className="flex items-center gap-1.5 text-sm font-medium">
                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    {result.asset.warrantyExpiry}
+                    {result.asset.warrantyExpiry || 'N/A'}
+                    {result.asset.warrantyDaysRemaining != null && (
+                      <span className="text-xs text-muted-foreground">({result.asset.warrantyDaysRemaining}d)</span>
+                    )}
                   </span>
                 </DetailRow>
-                <DetailRow label="Asset Value" value={`₹${result.asset.value.toLocaleString()}`} />
+                <DetailRow label="Purchase Cost" value={result.asset.purchaseCost ? `₹${Number(result.asset.purchaseCost).toLocaleString()}` : 'N/A'} />
               </DetailCard>
 
               {/* Alerts Card */}
               <DetailCard icon={Bell} title="Alerts & Notifications" accent="warning">
-                {result.asset.alertEnabled ? (
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 bg-warning-soft text-warning rounded-lg p-3">
-                      <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <div className="space-y-3">
+                  {result.activityLog && result.activityLog.length > 0 ? (
+                    <>
+                      <div className="flex items-start gap-3 bg-warning-soft text-warning rounded-lg p-3">
+                        <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">Activity Logged</p>
+                          <p className="text-xs mt-0.5 opacity-80">
+                            {result.activityLog.length} activity event{result.activityLog.length > 1 ? 's' : ''} recorded for this asset.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        {result.activityLog.slice(0, 3).map((log, i) => (
+                          <p key={i}>• {log.action.replace(/_/g, ' ')} — {log.performedBy} ({log.timestamp.substring(0, 10)})</p>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-start gap-3 bg-surface-muted rounded-lg p-3">
+                      <Bell className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
                       <div>
-                        <p className="text-sm font-medium">Alerts Active</p>
-                        <p className="text-xs mt-0.5 opacity-80">
-                          Lifecycle events, warranty alerts, and transfer notifications are being sent.
+                        <p className="text-sm font-medium text-foreground">No Activity Recorded</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          No activity events found for this asset.
                         </p>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground space-y-1">
-                      <p>• Warranty expiry reminders (30/7/1 day)</p>
-                      <p>• Transfer status updates</p>
-                      <p>• Maintenance schedule alerts</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3 bg-surface-muted rounded-lg p-3">
-                    <Bell className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">No Alerts Configured</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Enable alerts to receive lifecycle notifications for this asset.
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </DetailCard>
             </div>
 

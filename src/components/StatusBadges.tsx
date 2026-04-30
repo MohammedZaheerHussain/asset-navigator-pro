@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import type { AssetStatus, WarrantyStatus } from "@/lib/mock-data";
+export type AssetStatus = "active" | "maintenance" | "transfer" | "retired";
+export type WarrantyStatus = "valid" | "expiring" | "expired";
 import { Activity, Wrench, ArrowRightLeft, Archive, ShieldCheck, ShieldAlert, ShieldX } from "lucide-react";
 
 const assetStatusConfig: Record<AssetStatus, { label: string; cls: string; Icon: typeof Activity }> = {

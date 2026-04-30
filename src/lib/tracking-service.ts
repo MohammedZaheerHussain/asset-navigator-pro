@@ -1,286 +1,189 @@
 /**
- * Tracking Service — Material Tracking API Layer
- * 
- * Simulates backend API calls with proper validation, error handling,
- * and caching. Ready to be swapped with real PHP endpoints.
- * 
- * Future API endpoint: GET /track?type=barcode|serial|assetCode&value=
+ * Tracking Service — Smart Tracking via RTK-compatible fetch
+ *
+ * Now sends GET /api/track?value=XXX (no type param — backend auto-detects).
+ * Kept as a standalone service for the MaterialTracking page which needs
+ * manual control over loading/error states and barcode scanner integration.
  */
 
-import { assets, branchById, deptById, transfers } from "./mock-data";
-import type { Asset, Transfer } from "./mock-data";
+const API_BASE = "http://localhost:8000/api";
 
-// ─── Types ───────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────
 
 export type TrackingMode = "barcode" | "serial" | "asset";
 
 export interface TrackingResult {
-  asset: Asset;
+  asset: {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    serial: string;
+    barcode: string;
+    status: "active" | "maintenance" | "transfer" | "retired";
+    warrantyExpiry: string | null;
+    warrantyStatus: string;
+    warrantyDaysRemaining: number | null;
+    purchaseDate: string | null;
+    purchaseCost: string | null;
+  };
   branchName: string;
+  branchCode: string;
   departmentName: string;
+  departmentCode: string;
   assignedTo: string;
   lastUpdated: string;
-  transferHistory: TransferRecord[];
+  transferHistory: TransferEntry[];
+  activityLog: ActivityEntry[];
 }
 
-export interface TransferRecord {
+export interface TransferEntry {
   id: string;
   fromBranch: string;
   fromDept: string;
   toBranch: string;
   toDept: string;
+  status: string;
+  reason: string | null;
+  initiatedBy: string;
+  completedBy: string | null;
   date: string;
-  status: "completed" | "in_transit" | "pending";
+  completedDate: string | null;
+}
+
+export interface ActivityEntry {
+  action: string;
+  details: any;
+  performedBy: string;
+  timestamp: string;
 }
 
 export interface TrackingError {
-  type: "empty_input" | "invalid_format" | "not_found" | "server_error";
+  type: "not_found" | "invalid_format" | "server_error" | "empty_input";
   message: string;
 }
 
-// ─── Barcode Mapping (simulated) ─────────────────────────────────
-// In production, barcodes would be stored in the DB. Here we generate
-// deterministic barcodes from asset IDs for demonstration.
-
-const barcodeMap: Record<string, string> = {
-  "BCR-2948271001": "AST-1001",
-  "BCR-5531200002": "AST-1002",
-  "BCR-7712340003": "AST-1003",
-  "BCR-1109840004": "AST-1004",
-  "BCR-2200190005": "AST-1005",
-  "BCR-4512210006": "AST-1006",
-  "BCR-8822100007": "AST-1007",
-  "BCR-9902100008": "AST-1008",
-  "BCR-3301280009": "AST-1009",
-  "BCR-1109820010": "AST-1010",
-};
-
-// Reverse map: assetId → barcode
-const assetToBarcodeMap: Record<string, string> = Object.fromEntries(
-  Object.entries(barcodeMap).map(([barcode, assetId]) => [assetId, barcode])
-);
-
-export function getBarcodeForAsset(assetId: string): string {
-  return assetToBarcodeMap[assetId] ?? "N/A";
+export interface TrackingResponse {
+  data: TrackingResult | null;
+  error: TrackingError | null;
 }
 
-// ─── Validation ──────────────────────────────────────────────────
+// ─── Detection ──────────────────────────────────────────────────
 
-const VALIDATION_RULES: Record<TrackingMode, { pattern: RegExp; example: string; label: string }> = {
-  barcode: {
-    pattern: /^BCR-[A-Z0-9]{6,12}$/i,
-    example: "BCR-2948271001",
-    label: "Barcode",
-  },
-  serial: {
-    pattern: /^[A-Z]{2,5}-[A-Z0-9]{4,10}$/i,
-    example: "PHL-948271",
-    label: "Serial Number",
-  },
-  asset: {
-    pattern: /^AST-\d{4,6}$/i,
-    example: "AST-1001",
-    label: "Asset Code",
-  },
-};
+export function detectTrackingMode(value: string): TrackingMode | null {
+  const v = value.trim();
+  if (/^AST-/i.test(v)) return "asset";
+  if (/^BAR/i.test(v) || /^\d{8,}$/.test(v)) return "barcode";
+  if (/^SN-/i.test(v)) return "serial";
+  return null;
+}
 
-export function validateInput(mode: TrackingMode, value: string): TrackingError | null {
+// ─── Smart Track (value-only) ───────────────────────────────────
+
+export async function trackAsset(
+  _mode: TrackingMode,
+  value: string
+): Promise<TrackingResponse> {
   const trimmed = value.trim();
 
   if (!trimmed) {
-    return {
-      type: "empty_input",
-      message: "Please enter a value to search.",
-    };
+    return { data: null, error: { type: "empty_input", message: "Please enter a value to search." } };
+  }
+  if (trimmed.length < 2) {
+    return { data: null, error: { type: "invalid_format", message: "Search value must be at least 2 characters." } };
   }
 
-  const rule = VALIDATION_RULES[mode];
-  if (!rule.pattern.test(trimmed)) {
-    return {
-      type: "invalid_format",
-      message: `Invalid ${rule.label} format. Expected format: ${rule.example}`,
-    };
-  }
+  try {
+    const token = localStorage.getItem("snhrc_token");
+    const res = await fetch(
+      `${API_BASE}/track?value=${encodeURIComponent(trimmed)}`,
+      {
+        headers: {
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    );
 
-  return null;
-}
+    const json = await res.json();
 
-// ─── Search Cache ────────────────────────────────────────────────
-
-interface CacheEntry {
-  result: TrackingResult | null;
-  timestamp: number;
-}
-
-const searchCache = new Map<string, CacheEntry>();
-const CACHE_TTL = 30_000; // 30 seconds
-
-function getCacheKey(mode: TrackingMode, value: string): string {
-  return `${mode}:${value.trim().toUpperCase()}`;
-}
-
-function getCachedResult(key: string): TrackingResult | null | undefined {
-  const entry = searchCache.get(key);
-  if (!entry) return undefined;
-  if (Date.now() - entry.timestamp > CACHE_TTL) {
-    searchCache.delete(key);
-    return undefined;
-  }
-  return entry.result;
-}
-
-function setCachedResult(key: string, result: TrackingResult | null) {
-  searchCache.set(key, { result, timestamp: Date.now() });
-}
-
-// ─── Simulated Assigned Users ────────────────────────────────────
-
-const assignedUsers: Record<string, string> = {
-  "AST-1001": "Dr. Mehta",
-  "AST-1002": "Nurse Priya",
-  "AST-1003": "Biomed Team",
-  "AST-1004": "Dr. Ranganathan",
-  "AST-1005": "Nurse Anita",
-  "AST-1006": "Ward Staff (Pediatrics)",
-  "AST-1007": "Dr. Sharma",
-  "AST-1008": "IT Admin",
-  "AST-1009": "Dr. Venkatesh",
-  "AST-1010": "Dr. Anesthesia Team",
-};
-
-// ─── Last Updated Timestamps ────────────────────────────────────
-
-const lastUpdated: Record<string, string> = {
-  "AST-1001": "2025-04-25 14:30",
-  "AST-1002": "2025-04-24 09:15",
-  "AST-1003": "2025-04-20 16:45",
-  "AST-1004": "2025-04-22 11:00",
-  "AST-1005": "2025-04-18 08:30",
-  "AST-1006": "2025-04-15 13:20",
-  "AST-1007": "2025-04-23 10:50",
-  "AST-1008": "2025-04-10 17:00",
-  "AST-1009": "2025-04-21 12:30",
-  "AST-1010": "2025-04-19 15:45",
-};
-
-// ─── Core Search Function ────────────────────────────────────────
-
-function findAsset(mode: TrackingMode, value: string): Asset | undefined {
-  const q = value.trim().toUpperCase();
-
-  switch (mode) {
-    case "barcode": {
-      const assetId = barcodeMap[q];
-      if (!assetId) return undefined;
-      return assets.find((a) => a.id === assetId);
-    }
-    case "serial":
-      return assets.find((a) => a.serial.toUpperCase() === q);
-    case "asset":
-      return assets.find((a) => a.id.toUpperCase() === q);
-  }
-}
-
-function getTransferHistory(assetId: string): TransferRecord[] {
-  return transfers
-    .filter((t) => t.assetId === assetId)
-    .map((t) => ({
-      id: t.id,
-      fromBranch: t.fromBranch,
-      fromDept: t.fromDept,
-      toBranch: t.toBranch,
-      toDept: t.toDept,
-      date: t.date,
-      status: t.status,
-    }))
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-}
-
-// ─── Public API ──────────────────────────────────────────────────
-
-/**
- * Track an asset by barcode, serial number, or asset code.
- * Simulates network latency for realistic UX testing.
- * 
- * In production, replace this with:
- *   fetch(`/api/track?type=${mode}&value=${value}`)
- */
-export async function trackAsset(
-  mode: TrackingMode,
-  value: string
-): Promise<{ data: TrackingResult | null; error: TrackingError | null }> {
-  // Validate input
-  const validationError = validateInput(mode, value);
-  if (validationError) {
-    return { data: null, error: validationError };
-  }
-
-  // Check cache
-  const cacheKey = getCacheKey(mode, value);
-  const cached = getCachedResult(cacheKey);
-  if (cached !== undefined) {
-    if (cached === null) {
+    if (!res.ok || !json.success) {
+      if (res.status === 404) {
+        return {
+          data: null,
+          error: {
+            type: "not_found",
+            message: json.message || `No asset found matching "${trimmed}".`,
+          },
+        };
+      }
       return {
         data: null,
         error: {
-          type: "not_found",
-          message: `No asset found matching "${value.trim()}". Please verify the ${VALIDATION_RULES[mode].label.toLowerCase()} and try again.`,
+          type: "server_error",
+          message: json.message || "Server error occurred.",
         },
       };
     }
-    return { data: cached, error: null };
-  }
 
-  // Simulate network delay (150-350ms for realistic feel)
-  await new Promise((resolve) =>
-    setTimeout(resolve, 150 + Math.random() * 200)
-  );
+    const d = json.data;
 
-  // Search
-  const asset = findAsset(mode, value);
+    const result: TrackingResult = {
+      asset: {
+        id: d.asset_code,
+        name: d.name,
+        description: d.description || "",
+        category: d.category || "",
+        serial: d.serial_number || "",
+        barcode: d.barcode || "",
+        status: d.status || "active",
+        warrantyExpiry: d.warranty?.expiry || null,
+        warrantyStatus: d.warranty?.status || "no_warranty",
+        warrantyDaysRemaining: d.warranty?.days_remaining ?? null,
+        purchaseDate: d.purchase_date || null,
+        purchaseCost: d.purchase_cost || null,
+      },
+      branchName: d.location?.branch || "",
+      branchCode: d.location?.branch_code || "",
+      departmentName: d.location?.department || "",
+      departmentCode: d.location?.department_code || "",
+      assignedTo: d.assigned_to || "Unassigned",
+      lastUpdated: d.last_updated
+        ? new Date(d.last_updated).toLocaleDateString()
+        : "—",
+      transferHistory: (d.transfer_history || []).map((t: any) => ({
+        id: `TRF-${t.id}`,
+        fromBranch: t.from_branch || "",
+        fromDept: t.from_department || "",
+        toBranch: t.to_branch || "",
+        toDept: t.to_department || "",
+        status: t.status || "pending",
+        reason: t.reason || null,
+        initiatedBy: t.initiated_by || "",
+        completedBy: t.completed_by || null,
+        date: t.initiated_at
+          ? new Date(t.initiated_at).toLocaleDateString()
+          : "—",
+        completedDate: t.completed_at
+          ? new Date(t.completed_at).toLocaleDateString()
+          : null,
+      })),
+      activityLog: (d.activity_log || []).map((a: any) => ({
+        action: a.action || "",
+        details: a.details || {},
+        performedBy: a.performed_by || "",
+        timestamp: a.timestamp || "",
+      })),
+    };
 
-  if (!asset) {
-    setCachedResult(cacheKey, null);
+    return { data: result, error: null };
+  } catch {
     return {
       data: null,
       error: {
-        type: "not_found",
-        message: `No asset found matching "${value.trim()}". Please verify the ${VALIDATION_RULES[mode].label.toLowerCase()} and try again.`,
+        type: "server_error",
+        message: "Unable to connect to the server. Please check your connection.",
       },
     };
   }
-
-  const result: TrackingResult = {
-    asset,
-    branchName: branchById(asset.branchId)?.name ?? "Unknown",
-    departmentName: deptById(asset.departmentId)?.name ?? "Unknown",
-    assignedTo: assignedUsers[asset.id] ?? "Unassigned",
-    lastUpdated: lastUpdated[asset.id] ?? "N/A",
-    transferHistory: getTransferHistory(asset.id),
-  };
-
-  setCachedResult(cacheKey, result);
-  return { data: result, error: null };
-}
-
-/**
- * Auto-detect tracking mode from input value.
- * Useful for barcode scanner input or universal search.
- */
-export function detectTrackingMode(value: string): TrackingMode | null {
-  const trimmed = value.trim().toUpperCase();
-
-  if (trimmed.startsWith("BCR-")) return "barcode";
-  if (trimmed.startsWith("AST-")) return "asset";
-  // Serial numbers have varied prefixes — match X{2,5}-pattern
-  if (/^[A-Z]{2,5}-[A-Z0-9]+$/.test(trimmed)) return "serial";
-
-  return null;
-}
-
-/**
- * Clear the search cache.
- */
-export function clearTrackingCache() {
-  searchCache.clear();
 }
