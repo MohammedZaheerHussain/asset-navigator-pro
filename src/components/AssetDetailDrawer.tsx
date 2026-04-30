@@ -4,7 +4,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Asset, branchById, deptById } from "@/lib/mock-data";
 import { StatusBadge, WarrantyBadge } from "./StatusBadges";
-import { Calendar, Wrench, MapPin, ArrowRightLeft, Tag, ShieldCheck } from "lucide-react";
+import { Calendar, Wrench, MapPin, ArrowRightLeft, Tag, ShieldCheck, Barcode } from "lucide-react";
+import { BarcodeDisplay } from "./BarcodeDisplay";
 
 interface Props {
   asset: Asset | null;
@@ -58,6 +59,11 @@ export function AssetDetailDrawer({ asset, onClose }: Props) {
             <InfoCard icon={Calendar} title="Key Dates">
               <Row label="Purchase Date" value={asset.purchaseDate} />
               <Row label="Warranty Expiry" value={asset.warrantyExpiry} />
+            </InfoCard>
+            <InfoCard icon={Barcode} title="Asset Barcode">
+              <div className="col-span-2">
+                <BarcodeDisplay value={asset.id} compact />
+              </div>
             </InfoCard>
           </TabsContent>
 

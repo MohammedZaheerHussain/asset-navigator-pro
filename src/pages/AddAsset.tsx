@@ -9,21 +9,38 @@ import { Switch } from "@/components/ui/switch";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { MapPin, Tag, Wrench, CalendarDays, Bell, FileText, Save } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { MapPin, Tag, Wrench, CalendarDays, Bell, FileText, Save, CheckCircle2 } from "lucide-react";
 import { branches, departments, roomsByDept } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useAppSelector } from "@/store";
+import { useAppSelector, useAppDispatch } from "@/store";
+import { addAsset, clearLastCreatedId } from "@/store/assetsSlice";
+import { BarcodeDisplay } from "@/components/BarcodeDisplay";
 
 export default function AddAsset() {
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const lastCreatedId = useAppSelector((s) => s.assets.lastCreatedId);
+
   const [branchId, setBranchId] = useState("");
   const [deptId, setDeptId] = useState("");
   const [room, setRoom] = useState("");
   const [category, setCategory] = useState("");
   const [item, setItem] = useState("");
+  const [description, setDescription] = useState("");
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [serial, setSerial] = useState("");
+  const [value, setValue] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [warrantyExpiry, setWarrantyExpiry] = useState("");
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [childAsset, setChildAsset] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const allMaterials = useAppSelector((s) => s.materials.items);
   const categoryItems = useAppSelector((s) => s.categories.items);
@@ -35,9 +52,30 @@ export default function AddAsset() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    toast.success("Asset Added Successfully", {
-      description: `${item || "Asset"} has been registered to inventory.`,
-    });
+
+    dispatch(addAsset({
+      name: item || "Untitled Asset",
+      category: category,
+      branchId,
+      departmentId: deptId,
+      room,
+      make,
+      model,
+      serial,
+      value: parseFloat(value) || 0,
+      purchaseDate: purchaseDate || new Date().toISOString().slice(0, 10),
+      warrantyExpiry: warrantyExpiry || "2027-01-01",
+      status: "active",
+      warrantyStatus: "valid",
+      alertEnabled,
+    }));
+
+    setShowSuccess(true);
+  }
+
+  function handleClose() {
+    setShowSuccess(false);
+    dispatch(clearLastCreatedId());
     navigate("/assets/registry");
   }
 
@@ -87,7 +125,7 @@ export default function AddAsset() {
             </Field>
             <div className="md:col-span-2">
               <Field label="Description">
-                <Textarea rows={2} placeholder="Brief description of the asset…" />
+                <Textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Brief description of the asset…" />
               </Field>
             </div>
           </div>
@@ -95,19 +133,19 @@ export default function AddAsset() {
 
         <Section icon={Wrench} title="Product Details" subtitle="Manufacturer & identification" accent="info">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Field label="Make"><Input placeholder="e.g. Philips" /></Field>
-            <Field label="Model"><Input placeholder="e.g. MX450" /></Field>
-            <Field label="Serial Number"><Input placeholder="e.g. PHL-948271" /></Field>
-            <Field label="Value (USD)"><Input type="number" placeholder="0.00" /></Field>
+            <Field label="Make"><Input value={make} onChange={(e) => setMake(e.target.value)} placeholder="e.g. Philips" /></Field>
+            <Field label="Model"><Input value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. MX450" /></Field>
+            <Field label="Serial Number"><Input value={serial} onChange={(e) => setSerial(e.target.value)} placeholder="e.g. PHL-948271" /></Field>
+            <Field label="Value (USD)"><Input type="number" value={value} onChange={(e) => setValue(e.target.value)} placeholder="0.00" /></Field>
           </div>
         </Section>
 
         <Section icon={CalendarDays} title="Dates" subtitle="Critical lifecycle dates" accent="warning" highlight>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Purchase Date"><Input type="date" /></Field>
-            <Field label="Issue Date"><Input type="date" /></Field>
+            <Field label="Purchase Date"><Input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} /></Field>
+            <Field label="Issue Date"><Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} /></Field>
             <Field label="Warranty Expiry" required>
-              <Input type="date" className="border-warning/40 focus-visible:ring-warning/40" />
+              <Input type="date" value={warrantyExpiry} onChange={(e) => setWarrantyExpiry(e.target.value)} className="border-warning/40 focus-visible:ring-warning/40" />
             </Field>
           </div>
         </Section>
@@ -155,6 +193,31 @@ export default function AddAsset() {
           </Button>
         </div>
       </form>
+
+      {/* Success Dialog with Barcode */}
+      <Dialog open={showSuccess} onOpenChange={(o) => { if (!o) handleClose(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader className="text-center items-center">
+            <div className="h-14 w-14 rounded-full bg-success-soft flex items-center justify-center mb-2">
+              <CheckCircle2 className="h-7 w-7 text-success" />
+            </div>
+            <DialogTitle className="text-xl">Asset Registered Successfully</DialogTitle>
+            <DialogDescription>
+              A unique barcode has been generated for <span className="font-semibold text-foreground">{lastCreatedId}</span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            {lastCreatedId && <BarcodeDisplay value={lastCreatedId} />}
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-col gap-2">
+            <Button onClick={handleClose} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+              Go to Asset Registry
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

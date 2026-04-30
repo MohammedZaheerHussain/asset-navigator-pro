@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import { useDispatch, useSelector, type TypedUseSelectorHook } from "react-redux";
 import materialsReducer from "./materialsSlice";
 import categoriesReducer from "./categoriesSlice";
+import assetsReducer from "./assetsSlice";
 
 /* ──────────────────────────────────────────────
    SNHRC Redux Store
@@ -11,6 +12,7 @@ export const store = configureStore({
   reducer: {
     materials: materialsReducer,
     categories: categoriesReducer,
+    assets: assetsReducer,
   },
 });
 
