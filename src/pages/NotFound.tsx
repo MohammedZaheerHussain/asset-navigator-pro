@@ -54,7 +54,7 @@ const NotFound = () => {
         {/* Footer */}
         <div className="notfound-footer">
           <Shield size={12} />
-          <span>SNHRC Material Management System</span>
+          <span>SNHRC Asset & Material Management System</span>
         </div>
       </div>
     </div>

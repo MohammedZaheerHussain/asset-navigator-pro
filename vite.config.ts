@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["snhrc-logo.jpg", "favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: "SNHRC Material Management System",
+        name: "SNHRC Asset & Material Management System",
         short_name: "SNHRC",
         description: "Hospital asset & material management system for tracking equipment across branches",
         theme_color: "#e8793a",

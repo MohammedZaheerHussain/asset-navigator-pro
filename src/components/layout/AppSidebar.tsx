@@ -61,7 +61,7 @@ export function AppSidebar() {
         />
         {!collapsed && (
           <div className="flex flex-col leading-tight">
-            <span className="font-bold text-sm text-sidebar-foreground">Material Management</span>
+            <span className="font-bold text-sm text-sidebar-foreground">Asset & Material Management</span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">SNHRC</span>
           </div>
         )}

@@ -57,7 +57,7 @@ const Login = () => {
             <span className="login-hero-logo-text">SNHRC</span>
           </div>
           <div className="login-hero-tagline">
-            <h2>Material Management System</h2>
+            <h2>Asset & Material Management System</h2>
             <p>Streamlined asset tracking &amp; management<br />across all SNHRC branches</p>
           </div>
           <div className="login-hero-dots">

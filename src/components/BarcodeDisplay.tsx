@@ -64,7 +64,7 @@ export function BarcodeDisplay({
         </head>
         <body>
           <img src="${dataUrl}" alt="Barcode ${value}" />
-          <div class="label">SNHRC Material Management — ${value}</div>
+          <div class="label">SNHRC Asset & Material Management — ${value}</div>
         </body>
       </html>
     `);
