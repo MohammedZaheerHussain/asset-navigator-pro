@@ -98,6 +98,14 @@ class TrackingService
         // Calculate warranty status
         $warrantyStatus = $this->getWarrantyStatus($asset['warranty_expiry']);
 
+        // Calculate asset age
+        $assetAge = null;
+        if (!empty($asset['purchase_date'])) {
+            $purchase = new \DateTime($asset['purchase_date']);
+            $today = new \DateTime('today');
+            $assetAge = (int) $purchase->diff($today)->format('%a');
+        }
+
         // Build response in the exact format specified
         $response = [
             'asset_code'   => $asset['asset_code'],
@@ -120,6 +128,14 @@ class TrackingService
                 'expiry'         => $asset['warranty_expiry'],
                 'status'         => $warrantyStatus['status'],
                 'days_remaining' => $warrantyStatus['days_remaining'],
+            ],
+            'lifecycle'    => [
+                'purchase_date'    => $asset['purchase_date'],
+                'warranty_expiry'  => $asset['warranty_expiry'],
+                'warranty_status'  => $warrantyStatus['status'],
+                'warranty_days'    => $warrantyStatus['days_remaining'],
+                'asset_age_days'   => $assetAge,
+                'current_status'   => $asset['status'],
             ],
             'last_updated' => $asset['updated_at'],
             'created_at'   => $asset['created_at'],
@@ -146,6 +162,10 @@ class TrackingService
                     'timestamp'    => $a['created_at'],
                 ];
             }, $activityLogs), 0, 20),
+            // Unified history: merge activity + transfers into single timeline
+            'history' => $this->buildUnifiedHistory($activityLogs, $transferHistory),
+            // Reports: warranty alerts, transfer summaries
+            'reports' => $this->buildReports($asset, $warrantyStatus, $transferHistory),
         ];
 
         return ['success' => true, 'data' => $response];
@@ -196,5 +216,105 @@ class TrackingService
         } else {
             return ['status' => 'active', 'days_remaining' => $daysRemaining];
         }
+    }
+
+    /**
+     * Build unified history timeline (activity_logs + transfers merged chronologically)
+     */
+    private function buildUnifiedHistory(array $activityLogs, array $transfers): array
+    {
+        $history = [];
+
+        // Add activity log entries
+        foreach ($activityLogs as $a) {
+            $details = json_decode($a['details'] ?? '{}', true);
+            $history[] = [
+                'type'         => 'activity',
+                'action'       => $a['action'],
+                'description'  => $details['message'] ?? ucfirst(str_replace('_', ' ', $a['action'])),
+                'performed_by' => $a['performed_by_name'] ?? 'System',
+                'timestamp'    => $a['created_at'],
+                'details'      => $details,
+            ];
+        }
+
+        // Add transfer entries
+        foreach ($transfers as $t) {
+            $action = $t['status'] === 'completed' ? 'transfer_completed' : 'transferred';
+            $desc = "From {$t['from_branch_name']} ({$t['from_department_name']}) → {$t['to_branch_name']} ({$t['to_department_name']})";
+            $history[] = [
+                'type'         => 'transfer',
+                'action'       => $action,
+                'description'  => $desc,
+                'performed_by' => $t['initiated_by_name'] ?? 'System',
+                'timestamp'    => $t['initiated_at'],
+                'details'      => [
+                    'from_branch'    => $t['from_branch_name'],
+                    'from_dept'      => $t['from_department_name'],
+                    'to_branch'      => $t['to_branch_name'],
+                    'to_dept'        => $t['to_department_name'],
+                    'status'         => $t['status'],
+                    'reason'         => $t['reason'],
+                ],
+            ];
+        }
+
+        // Sort by timestamp descending (newest first)
+        usort($history, function ($a, $b) {
+            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        });
+
+        return array_slice($history, 0, 20);
+    }
+
+    /**
+     * Build reports: warranty alerts, transfer summaries, maintenance records
+     */
+    private function buildReports(array $asset, array $warrantyStatus, array $transfers): array
+    {
+        $reports = [];
+
+        // Warranty report
+        if ($warrantyStatus['status'] === 'expired') {
+            $reports[] = [
+                'type'        => 'warranty_alert',
+                'severity'    => 'critical',
+                'title'       => 'Warranty Expired',
+                'description' => "Warranty expired " . abs($warrantyStatus['days_remaining']) . " days ago on {$asset['warranty_expiry']}.",
+                'date'        => $asset['warranty_expiry'],
+            ];
+        } elseif ($warrantyStatus['status'] === 'expiring_soon') {
+            $reports[] = [
+                'type'        => 'warranty_alert',
+                'severity'    => 'warning',
+                'title'       => 'Warranty Expiring Soon',
+                'description' => "Warranty expires in {$warrantyStatus['days_remaining']} days on {$asset['warranty_expiry']}.",
+                'date'        => $asset['warranty_expiry'],
+            ];
+        }
+
+        // Transfer reports
+        foreach ($transfers as $t) {
+            $reports[] = [
+                'type'        => 'transfer',
+                'severity'    => 'info',
+                'title'       => "Transfer #{$t['id']} — " . ucfirst(str_replace('_', ' ', $t['status'])),
+                'description' => "{$t['from_branch_name']} → {$t['to_branch_name']}" . ($t['reason'] ? " — {$t['reason']}" : ''),
+                'date'        => $t['initiated_at'],
+            ];
+        }
+
+        // Maintenance report (if asset is in maintenance)
+        if ($asset['status'] === 'maintenance') {
+            $reports[] = [
+                'type'        => 'maintenance',
+                'severity'    => 'warning',
+                'title'       => 'Under Maintenance',
+                'description' => 'This asset is currently undergoing maintenance.',
+                'date'        => $asset['updated_at'],
+            ];
+        }
+
+        return $reports;
     }
 }
