@@ -29,6 +29,11 @@ import {
   Calendar,
   DollarSign,
   Truck,
+  Timer,
+  FileText,
+  Activity,
+  Wrench,
+  Shield,
 } from "lucide-react";
 import { StatusBadge } from "@/components/StatusBadges";
 import { EmptyState } from "@/components/EmptyState";
@@ -39,8 +44,11 @@ import {
   type TrackingMode,
   type TrackingResult,
   type TrackingError,
+  type HistoryEntry,
+  type ReportEntry,
 } from "@/lib/tracking-service";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
+import { CameraScanner } from "@/components/CameraScanner";
 
 // ─── Tab Config ──────────────────────────────────────────────────
 
@@ -253,6 +261,14 @@ export default function MaterialTracking() {
                     </button>
                   )}
                 </div>
+                <CameraScanner
+                  onScan={(val) => {
+                    const detected = detectTrackingMode(val);
+                    if (detected) setMode(detected);
+                    setQuery(val);
+                    performSearch(detected ?? mode, val);
+                  }}
+                />
                 <Button
                   type="submit"
                   disabled={isLoading}
@@ -544,9 +560,85 @@ export default function MaterialTracking() {
                   )}
                 </div>
               </DetailCard>
+
+              {/* Lifecycle Card */}
+              <DetailCard icon={Timer} title="Asset Lifecycle" accent="info">
+                <DetailRow label="Current Status">
+                  <StatusBadge status={result.lifecycle.currentStatus} size="sm" />
+                </DetailRow>
+                <DetailRow label="Asset Age">
+                  <span className="text-sm font-semibold">
+                    {result.lifecycle.assetAgeDays != null
+                      ? result.lifecycle.assetAgeDays >= 365
+                        ? `${Math.floor(result.lifecycle.assetAgeDays / 365)}y ${result.lifecycle.assetAgeDays % 365}d`
+                        : `${result.lifecycle.assetAgeDays} days`
+                      : 'N/A'}
+                  </span>
+                </DetailRow>
+                <DetailRow label="Warranty">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    result.lifecycle.warrantyStatus === 'active' ? 'bg-green-100 text-green-700' :
+                    result.lifecycle.warrantyStatus === 'expiring_soon' ? 'bg-orange-100 text-orange-700' :
+                    result.lifecycle.warrantyStatus === 'expired' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {result.lifecycle.warrantyStatus === 'active' ? `Active (${result.lifecycle.warrantyDays}d)` :
+                     result.lifecycle.warrantyStatus === 'expiring_soon' ? `Expiring (${result.lifecycle.warrantyDays}d)` :
+                     result.lifecycle.warrantyStatus === 'expired' ? 'Expired' : 'No Warranty'}
+                  </span>
+                </DetailRow>
+                <DetailRow label="Registered" value={result.createdAt} />
+              </DetailCard>
             </div>
 
-            {/* Transfer History Timeline */}
+            {/* ── Unified History Timeline ─────────────────────── */}
+            {result.history && result.history.length > 0 && (
+              <Card className="shadow-elegant">
+                <CardHeader className="flex-row items-center gap-3 space-y-0 pb-4">
+                  <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
+                    <Activity className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Asset History</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {result.history.length} event{result.history.length > 1 ? 's' : ''} — complete lifecycle timeline
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative">
+                    <div className="absolute left-[17px] top-0 bottom-0 w-px bg-border" />
+                    {result.history.map((event, idx) => (
+                      <HistoryTimelineItem key={idx} event={event} />
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Reports Section ──────────────────────────────── */}
+            {result.reports && result.reports.length > 0 && (
+              <Card className="shadow-elegant">
+                <CardHeader className="flex-row items-center gap-3 space-y-0 pb-4">
+                  <div className="h-9 w-9 rounded-xl bg-warning-soft text-warning flex items-center justify-center">
+                    <FileText className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Reports & Alerts</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {result.reports.length} report{result.reports.length > 1 ? 's' : ''} for this asset
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {result.reports.map((report, idx) => (
+                    <ReportCard key={idx} report={report} />
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* ── Transfer History (legacy, kept for detailed transfer view) ── */}
             {result.transferHistory.length > 0 && (
               <Card className="shadow-elegant">
                 <CardHeader className="flex-row items-center gap-3 space-y-0 pb-4">
@@ -554,7 +646,7 @@ export default function MaterialTracking() {
                     <Truck className="h-4.5 w-4.5" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Transfer History</CardTitle>
+                    <CardTitle className="text-base">Transfer Details</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {result.transferHistory.length} transfer{result.transferHistory.length > 1 ? "s" : ""} recorded
                     </p>
@@ -562,12 +654,9 @@ export default function MaterialTracking() {
                 </CardHeader>
                 <CardContent>
                   <div className="relative">
-                    {/* Timeline Line */}
                     <div className="absolute left-[17px] top-0 bottom-0 w-px bg-border" />
-
-                    {result.transferHistory.map((transfer, idx) => (
+                    {result.transferHistory.map((transfer) => (
                       <div key={transfer.id} className="relative flex gap-4 pb-6 last:pb-0">
-                        {/* Timeline Dot */}
                         <div className={cn(
                           "relative z-10 flex-shrink-0 h-9 w-9 rounded-full border-2 flex items-center justify-center",
                           transfer.status === "in_transit"
@@ -584,8 +673,6 @@ export default function MaterialTracking() {
                             <Clock className="h-4 w-4 text-warning" />
                           )}
                         </div>
-
-                        {/* Timeline Content */}
                         <div className="flex-1 bg-surface-muted rounded-xl p-4 hover:bg-muted/60 transition-colors">
                           <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
                             <div className="flex items-center gap-2">
@@ -601,11 +688,7 @@ export default function MaterialTracking() {
                                       : "border-warning/30 text-warning bg-warning-soft"
                                 )}
                               >
-                                {transfer.status === "in_transit"
-                                  ? "In Transit"
-                                  : transfer.status === "completed"
-                                    ? "Completed"
-                                    : "Pending"}
+                                {transfer.status === "in_transit" ? "In Transit" : transfer.status === "completed" ? "Completed" : "Pending"}
                               </Badge>
                             </div>
                             <span className="text-xs text-muted-foreground flex items-center gap-1">
@@ -613,13 +696,16 @@ export default function MaterialTracking() {
                               {transfer.date}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex items-center gap-2 text-sm flex-wrap">
                             <span className="font-medium text-foreground">{transfer.fromBranch}</span>
                             <span className="text-xs text-muted-foreground">({transfer.fromDept})</span>
                             <ArrowRightLeft className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                             <span className="font-medium text-foreground">{transfer.toBranch}</span>
                             <span className="text-xs text-muted-foreground">({transfer.toDept})</span>
                           </div>
+                          {transfer.reason && (
+                            <p className="text-xs text-muted-foreground mt-2 italic">"{transfer.reason}"</p>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -748,6 +834,82 @@ function QuickStat({
       <div className="min-w-0">
         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{label}</p>
         <p className="text-sm font-semibold text-foreground truncate">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/** History Timeline Item — unified activity + transfer events */
+function HistoryTimelineItem({ event }: { event: HistoryEntry }) {
+  const actionConfig: Record<string, { icon: typeof CheckCircle2; color: string; bg: string }> = {
+    created:             { icon: CheckCircle2,   color: "text-success",  bg: "border-success bg-success-soft" },
+    updated:             { icon: Activity,       color: "text-info",     bg: "border-info bg-info-soft" },
+    transferred:         { icon: ArrowRightLeft, color: "text-info",     bg: "border-info bg-info-soft" },
+    transfer_completed:  { icon: CheckCircle2,   color: "text-success",  bg: "border-success bg-success-soft" },
+    transfer_cancelled:  { icon: XCircle,        color: "text-danger",   bg: "border-danger bg-danger-soft" },
+    status_changed:      { icon: Zap,            color: "text-warning",  bg: "border-warning bg-warning-soft" },
+    assigned:            { icon: User,           color: "text-primary",  bg: "border-primary bg-primary-soft" },
+    unassigned:          { icon: User,           color: "text-muted-foreground", bg: "border-muted bg-muted" },
+    deleted:             { icon: XCircle,        color: "text-danger",   bg: "border-danger bg-danger-soft" },
+    restored:            { icon: CheckCircle2,   color: "text-success",  bg: "border-success bg-success-soft" },
+  };
+
+  const config = actionConfig[event.action] || { icon: CircleDot, color: "text-muted-foreground", bg: "border-muted bg-surface-muted" };
+  const Icon = config.icon;
+
+  return (
+    <div className="relative flex gap-4 pb-5 last:pb-0">
+      <div className={cn("relative z-10 flex-shrink-0 h-9 w-9 rounded-full border-2 flex items-center justify-center", config.bg)}>
+        <Icon className={cn("h-4 w-4", config.color)} />
+      </div>
+      <div className="flex-1 bg-surface-muted rounded-xl p-3.5 hover:bg-muted/60 transition-colors">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wider font-semibold", config.bg.replace("border-", "border-").replace("bg-", "text-").split(" ")[0])}>
+              {event.type === "transfer" ? "Transfer" : "Activity"}
+            </Badge>
+            <span className="text-xs font-medium text-foreground">
+              {event.action.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+          </div>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {event.timestamp ? new Date(event.timestamp).toLocaleString() : "—"}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">{event.description}</p>
+        {event.performedBy && (
+          <p className="text-[10px] text-muted-foreground/70 mt-1.5 flex items-center gap-1">
+            <User className="h-3 w-3" /> {event.performedBy}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Report Card — warranty alerts, transfer reports, maintenance records */
+function ReportCard({ report }: { report: ReportEntry }) {
+  const severityConfig = {
+    critical: { bg: "bg-red-50 border-red-200", icon: AlertCircle, iconColor: "text-red-600", titleColor: "text-red-800" },
+    warning:  { bg: "bg-orange-50 border-orange-200", icon: Bell, iconColor: "text-orange-600", titleColor: "text-orange-800" },
+    info:     { bg: "bg-blue-50 border-blue-200", icon: FileText, iconColor: "text-blue-600", titleColor: "text-blue-800" },
+  };
+
+  const config = severityConfig[report.severity] || severityConfig.info;
+  const Icon = config.icon;
+
+  return (
+    <div className={cn("flex items-start gap-3 rounded-xl p-4 border", config.bg)}>
+      <Icon className={cn("h-5 w-5 mt-0.5 flex-shrink-0", config.iconColor)} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className={cn("text-sm font-semibold", config.titleColor)}>{report.title}</h4>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+            {report.date ? new Date(report.date).toLocaleDateString() : ""}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-0.5">{report.description}</p>
       </div>
     </div>
   );

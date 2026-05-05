@@ -1,9 +1,8 @@
 /**
  * Tracking Service — Smart Tracking via RTK-compatible fetch
  *
- * Now sends GET /api/track?value=XXX (no type param — backend auto-detects).
- * Kept as a standalone service for the MaterialTracking page which needs
- * manual control over loading/error states and barcode scanner integration.
+ * Sends GET /api/track?value=XXX (backend auto-detects type).
+ * Enhanced with lifecycle, unified history, and reports data.
  */
 
 const API_BASE = "http://localhost:8000/api";
@@ -20,7 +19,7 @@ export interface TrackingResult {
     category: string;
     serial: string;
     barcode: string;
-    status: "active" | "maintenance" | "transfer" | "retired";
+    status: "active" | "maintenance" | "in_transfer" | "disposed" | "lost" | "inactive";
     warrantyExpiry: string | null;
     warrantyStatus: string;
     warrantyDaysRemaining: number | null;
@@ -33,8 +32,19 @@ export interface TrackingResult {
   departmentCode: string;
   assignedTo: string;
   lastUpdated: string;
+  createdAt: string;
+  lifecycle: {
+    purchaseDate: string | null;
+    warrantyExpiry: string | null;
+    warrantyStatus: string;
+    warrantyDays: number | null;
+    assetAgeDays: number | null;
+    currentStatus: string;
+  };
   transferHistory: TransferEntry[];
   activityLog: ActivityEntry[];
+  history: HistoryEntry[];
+  reports: ReportEntry[];
 }
 
 export interface TransferEntry {
@@ -56,6 +66,23 @@ export interface ActivityEntry {
   details: any;
   performedBy: string;
   timestamp: string;
+}
+
+export interface HistoryEntry {
+  type: "activity" | "transfer";
+  action: string;
+  description: string;
+  performedBy: string;
+  timestamp: string;
+  details: any;
+}
+
+export interface ReportEntry {
+  type: "warranty_alert" | "transfer" | "maintenance";
+  severity: "critical" | "warning" | "info";
+  title: string;
+  description: string;
+  date: string;
 }
 
 export interface TrackingError {
@@ -151,6 +178,17 @@ export async function trackAsset(
       lastUpdated: d.last_updated
         ? new Date(d.last_updated).toLocaleDateString()
         : "—",
+      createdAt: d.created_at
+        ? new Date(d.created_at).toLocaleDateString()
+        : "—",
+      lifecycle: {
+        purchaseDate: d.lifecycle?.purchase_date || d.purchase_date || null,
+        warrantyExpiry: d.lifecycle?.warranty_expiry || d.warranty?.expiry || null,
+        warrantyStatus: d.lifecycle?.warranty_status || d.warranty?.status || "no_warranty",
+        warrantyDays: d.lifecycle?.warranty_days ?? d.warranty?.days_remaining ?? null,
+        assetAgeDays: d.lifecycle?.asset_age_days ?? null,
+        currentStatus: d.lifecycle?.current_status || d.status || "active",
+      },
       transferHistory: (d.transfer_history || []).map((t: any) => ({
         id: `TRF-${t.id}`,
         fromBranch: t.from_branch || "",
@@ -173,6 +211,21 @@ export async function trackAsset(
         details: a.details || {},
         performedBy: a.performed_by || "",
         timestamp: a.timestamp || "",
+      })),
+      history: (d.history || []).map((h: any) => ({
+        type: h.type || "activity",
+        action: h.action || "",
+        description: h.description || "",
+        performedBy: h.performed_by || "System",
+        timestamp: h.timestamp || "",
+        details: h.details || {},
+      })),
+      reports: (d.reports || []).map((r: any) => ({
+        type: r.type || "info",
+        severity: r.severity || "info",
+        title: r.title || "",
+        description: r.description || "",
+        date: r.date || "",
       })),
     };
 
