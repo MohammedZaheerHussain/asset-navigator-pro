@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
-  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Tags,
+  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Tags, Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +32,9 @@ const sections: NavSection[] = [
   ]},
   { label: "Transactions", items: [
     { title: "Material Transfer", url: "/transactions/transfer", icon: ArrowLeftRight },
+  ]},
+  { label: "Documents", items: [
+    { title: "Invoices & Bills", url: "/documents", icon: Receipt },
   ]},
   { label: "Equipment", items: [
     { title: "Biomedical",       url: "/equipment/biomedical", icon: HeartPulse },

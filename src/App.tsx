@@ -15,6 +15,7 @@ import MaterialTracking from "./pages/MaterialTracking";
 import MaterialTransfer from "./pages/MaterialTransfer";
 import EquipmentList from "./pages/EquipmentList";
 import Reports from "./pages/Reports";
+import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -60,6 +61,7 @@ const App = () => (
             <Route path="/equipment/biomedical" element={<EquipmentList type="biomedical" />} />
             <Route path="/equipment/other" element={<EquipmentList type="other" />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/documents" element={<Documents />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
