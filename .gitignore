@@ -34,3 +34,6 @@ skills-lock.json
 
 # RTK
 .rtk/
+backend/vendor/
+backend/logs/
+backend/.env
