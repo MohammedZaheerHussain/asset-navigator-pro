@@ -106,6 +106,16 @@ $router->get('/api/categories', [CategoryController::class, 'index'], $authMw);
 $router->post('/api/categories', [CategoryController::class, 'store'], $adminMw);
 $router->put('/api/categories/{id}', [CategoryController::class, 'update'], $adminMw);
 
+// ── Reports (Multi-User Report System) ──
+use App\Controllers\ReportController;
+
+$router->get('/api/reports', [ReportController::class, 'index'], $authMw);
+$router->post('/api/reports', [ReportController::class, 'store'], $adminMw);
+$router->get('/api/reports/{id}/history', [ReportController::class, 'history'], $authMw);
+$router->get('/api/reports/{id}', [ReportController::class, 'show'], $authMw);
+$router->put('/api/reports/{id}', [ReportController::class, 'update'], $authMw);
+$router->delete('/api/reports/{id}', [ReportController::class, 'destroy'], $adminMw);
+
 // ============================================================
 // Service & Depreciation Management
 // ============================================================
@@ -139,3 +149,4 @@ $router->put('/api/condemnation/{id}/review', [ServiceController::class, 'review
 $router->get('/api/disposal', [ServiceController::class, 'listDisposals'], $authMw);
 $router->post('/api/disposal', [ServiceController::class, 'createDisposal'], $adminMw);
 $router->get('/api/disposal/stats', [ServiceController::class, 'disposalStats'], $authMw);
+
