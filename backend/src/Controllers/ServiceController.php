@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Request;
 use App\Core\Response;
 use App\Models\ServiceRecord;
 use App\Models\DepreciationConfig;
@@ -25,18 +26,17 @@ class ServiceController
 
     // ─── Service Records ────────────────────────────────────────
 
-    public function listServices(): void
+    public function listServices(Request $request): void
     {
         $filters = [
-            'asset_code'   => $_GET['asset_code'] ?? null,
-            'service_type' => $_GET['service_type'] ?? null,
-            'search'       => $_GET['search'] ?? null,
-            'date_from'    => $_GET['date_from'] ?? null,
-            'date_to'      => $_GET['date_to'] ?? null,
+            'asset_code'   => $request->query('asset_code'),
+            'service_type' => $request->query('service_type'),
+            'search'       => $request->query('search'),
+            'date_from'    => $request->query('date_from'),
+            'date_to'      => $request->query('date_to'),
         ];
         $records = $this->serviceModel->getAll(array_filter($filters));
 
-        // Add formatted cost
         foreach ($records as &$r) {
             $r['total_cost_display'] = '₹' . number_format((float)$r['total_cost'], 2);
         }
@@ -44,8 +44,9 @@ class ServiceController
         Response::success($records, 'Service records retrieved');
     }
 
-    public function getService(int $id): void
+    public function getService(Request $request): void
     {
+        $id = (int) $request->param('id');
         $record = $this->serviceModel->getById($id);
         if (!$record) {
             Response::notFound('Service record not found');
@@ -54,8 +55,9 @@ class ServiceController
         Response::success($record);
     }
 
-    public function getAssetServices(string $assetCode): void
+    public function getAssetServices(Request $request): void
     {
+        $assetCode = $request->param('code');
         $records = $this->serviceModel->getByAsset($assetCode);
         $summary = $this->serviceModel->getAssetServiceSummary($assetCode);
         Response::success([
@@ -64,35 +66,38 @@ class ServiceController
         ], 'Asset service history retrieved');
     }
 
-    public function createService(): void
+    public function createService(Request $request): void
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
 
         if (empty($data['asset_code']) || empty($data['description'])) {
             Response::validationError(['asset_code and description are required']);
             return;
         }
 
-        $data['logged_by'] = $GLOBALS['auth_user']['id'] ?? null;
+        $user = $request->user();
+        $data['logged_by'] = $user['sub'] ?? null;
         $record = $this->serviceModel->store($data);
-        Response::success($record, 'Service record created', 201);
+        Response::created($record, 'Service record created');
     }
 
-    public function updateService(int $id): void
+    public function updateService(Request $request): void
     {
+        $id = (int) $request->param('id');
         $existing = $this->serviceModel->getById($id);
         if (!$existing) {
             Response::notFound('Service record not found');
             return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
         $updated = $this->serviceModel->update($id, $data);
         Response::success($updated, 'Service record updated');
     }
 
-    public function deleteService(int $id): void
+    public function deleteService(Request $request): void
     {
+        $id = (int) $request->param('id');
         if ($this->serviceModel->destroy($id)) {
             Response::success(null, 'Service record deleted');
         } else {
@@ -100,7 +105,7 @@ class ServiceController
         }
     }
 
-    public function serviceDashboard(): void
+    public function serviceDashboard(Request $request): void
     {
         $stats = $this->serviceModel->getDashboardStats();
         Response::success($stats, 'Service dashboard stats');
@@ -108,15 +113,15 @@ class ServiceController
 
     // ─── Depreciation ───────────────────────────────────────────
 
-    public function listDepreciationConfigs(): void
+    public function listDepreciationConfigs(Request $request): void
     {
         $configs = $this->depConfig->getAll();
         Response::success($configs, 'Depreciation configs retrieved');
     }
 
-    public function upsertDepreciationConfig(): void
+    public function upsertDepreciationConfig(Request $request): void
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
 
         if (empty($data['category_id'])) {
             Response::validationError(['category_id is required']);
@@ -127,11 +132,10 @@ class ServiceController
         Response::success($config, 'Depreciation config saved');
     }
 
-    public function getAssetDepreciation(string $assetCode): void
+    public function getAssetDepreciation(Request $request): void
     {
-        // Get asset
-        $db = new \App\Core\Database();
-        $asset = $db->fetch("SELECT * FROM assets WHERE asset_code = ?", [$assetCode]);
+        $assetCode = $request->param('code');
+        $asset = \App\Core\Database::getInstance()->fetch("SELECT * FROM assets WHERE asset_code = ?", [$assetCode]);
         if (!$asset) {
             Response::notFound('Asset not found');
             return;
@@ -141,32 +145,25 @@ class ServiceController
         Response::success($depreciation, 'Depreciation calculated');
     }
 
-    public function getAssetValuation(string $assetCode): void
+    public function getAssetValuation(Request $request): void
     {
-        // Get asset
-        $db = new \App\Core\Database();
-        $asset = $db->fetch("SELECT * FROM assets WHERE asset_code = ?", [$assetCode]);
+        $assetCode = $request->param('code');
+        $asset = \App\Core\Database::getInstance()->fetch("SELECT * FROM assets WHERE asset_code = ?", [$assetCode]);
         if (!$asset) {
             Response::notFound('Asset not found');
             return;
         }
 
-        // Depreciation
         $depreciation = $this->depConfig->calculateDepreciation($asset);
-
-        // Service costs
         $serviceSummary = $this->serviceModel->getAssetServiceSummary($assetCode);
         $totalServiceCost = (float)($serviceSummary['total_service_cost'] ?? 0);
         $bookValue = (float)$depreciation['current_book_value'];
 
-        // Ratio
         $ratio = $bookValue > 0 ? round(($totalServiceCost / $bookValue) * 100, 1) : 0;
 
-        // Get threshold
         $config = $this->depConfig->getByCategory($asset['category_id']);
         $threshold = (float)($config['service_cost_threshold_percent'] ?? 50);
 
-        // Health status
         if ($ratio < 30) $health = 'healthy';
         elseif ($ratio < $threshold) $health = 'warning';
         else $health = 'critical';
@@ -188,10 +185,9 @@ class ServiceController
         ], 'Asset valuation calculated');
     }
 
-    public function depreciationReport(): void
+    public function depreciationReport(Request $request): void
     {
-        $db = new \App\Core\Database();
-        $assets = $db->fetchAll("SELECT * FROM assets WHERE is_deleted = false ORDER BY asset_code");
+        $assets = \App\Core\Database::getInstance()->fetchAll("SELECT * FROM assets WHERE is_deleted = false ORDER BY asset_code");
 
         $report = [];
         foreach ($assets as $asset) {
@@ -218,16 +214,13 @@ class ServiceController
             ];
         }
 
-        // Sort by ratio desc (worst first)
         usort($report, fn($a, $b) => $b['service_cost_ratio'] <=> $a['service_cost_ratio']);
-
         Response::success($report, 'Depreciation report generated');
     }
 
-    public function flaggedAssets(): void
+    public function flaggedAssets(Request $request): void
     {
-        $db = new \App\Core\Database();
-        $assets = $db->fetchAll("SELECT * FROM assets WHERE is_deleted = false ORDER BY asset_code");
+        $assets = \App\Core\Database::getInstance()->fetchAll("SELECT * FROM assets WHERE is_deleted = false ORDER BY asset_code");
 
         $flagged = [];
         foreach ($assets as $asset) {
@@ -261,44 +254,42 @@ class ServiceController
 
     // ─── Condemnation ───────────────────────────────────────────
 
-    public function listCondemnations(): void
+    public function listCondemnations(Request $request): void
     {
         $filters = [
-            'status'          => $_GET['status'] ?? null,
-            'reason_category' => $_GET['reason_category'] ?? null,
-            'search'          => $_GET['search'] ?? null,
+            'status'          => $request->query('status'),
+            'reason_category' => $request->query('reason_category'),
+            'search'          => $request->query('search'),
         ];
         $requests = $this->condemnModel->getAll(array_filter($filters));
         Response::success($requests, 'Condemnation requests retrieved');
     }
 
-    public function getCondemnation(int $id): void
+    public function getCondemnation(Request $request): void
     {
-        $request = $this->condemnModel->getById($id);
-        if (!$request) {
+        $id = (int) $request->param('id');
+        $record = $this->condemnModel->getById($id);
+        if (!$record) {
             Response::notFound('Condemnation request not found');
             return;
         }
 
-        // Attach service history
-        $services = $this->serviceModel->getByAsset($request['asset_code']);
-        $request['service_history'] = $services;
+        $services = $this->serviceModel->getByAsset($record['asset_code']);
+        $record['service_history'] = $services;
 
-        Response::success($request);
+        Response::success($record);
     }
 
-    public function createCondemnation(): void
+    public function createCondemnation(Request $request): void
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
 
         if (empty($data['asset_code']) || empty($data['reason'])) {
             Response::validationError(['asset_code and reason are required']);
             return;
         }
 
-        // Auto-fill financial snapshot
-        $db = new \App\Core\Database();
-        $asset = $db->fetch("SELECT * FROM assets WHERE asset_code = ?", [$data['asset_code']]);
+        $asset = \App\Core\Database::getInstance()->fetch("SELECT * FROM assets WHERE asset_code = ?", [$data['asset_code']]);
         if (!$asset) {
             Response::notFound('Asset not found');
             return;
@@ -309,46 +300,44 @@ class ServiceController
         $totalSvc = (float)($svc['total_service_cost'] ?? 0);
         $bookVal = (float)$dep['current_book_value'];
 
+        $user = $request->user();
         $data['purchase_cost'] = (float)$asset['purchase_cost'];
         $data['current_book_value'] = $bookVal;
         $data['total_service_cost'] = $totalSvc;
         $data['service_cost_ratio'] = $bookVal > 0 ? round(($totalSvc / $bookVal) * 100, 1) : 0;
-        $data['requested_by'] = $GLOBALS['auth_user']['id'];
+        $data['requested_by'] = $user['sub'] ?? null;
 
-        // Update asset status to flagged
-        $db->query("UPDATE assets SET status = 'flagged', updated_at = NOW() WHERE asset_code = ?", [$data['asset_code']]);
+        \App\Core\Database::getInstance()->query("UPDATE assets SET status = 'flagged', updated_at = NOW() WHERE asset_code = ?", [$data['asset_code']]);
 
-        $request = $this->condemnModel->store($data);
-        Response::success($request, 'Condemnation request submitted', 201);
+        $result = $this->condemnModel->store($data);
+        Response::created($result, 'Condemnation request submitted');
     }
 
-    public function reviewCondemnation(int $id): void
+    public function reviewCondemnation(Request $request): void
     {
+        $id = (int) $request->param('id');
         $existing = $this->condemnModel->getById($id);
         if (!$existing) {
             Response::notFound('Condemnation request not found');
             return;
         }
 
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
 
         if (empty($data['status']) || !in_array($data['status'], ['approved', 'rejected', 'deferred'])) {
             Response::validationError(['status must be approved, rejected, or deferred']);
             return;
         }
 
-        $data['reviewed_by'] = $GLOBALS['auth_user']['id'];
+        $user = $request->user();
+        $data['reviewed_by'] = $user['sub'] ?? null;
         $updated = $this->condemnModel->review($id, $data);
 
-        // If approved, mark asset as condemned
         if ($data['status'] === 'approved') {
-            $db = new \App\Core\Database();
-            $db->query("UPDATE assets SET status = 'condemned', updated_at = NOW() WHERE asset_code = ?", [$existing['asset_code']]);
+            \App\Core\Database::getInstance()->query("UPDATE assets SET status = 'condemned', updated_at = NOW() WHERE asset_code = ?", [$existing['asset_code']]);
         }
-        // If rejected, revert to active
         if ($data['status'] === 'rejected') {
-            $db = new \App\Core\Database();
-            $db->query("UPDATE assets SET status = 'active', updated_at = NOW() WHERE asset_code = ?", [$existing['asset_code']]);
+            \App\Core\Database::getInstance()->query("UPDATE assets SET status = 'active', updated_at = NOW() WHERE asset_code = ?", [$existing['asset_code']]);
         }
 
         Response::success($updated, 'Condemnation request ' . $data['status']);
@@ -356,43 +345,41 @@ class ServiceController
 
     // ─── Disposal ───────────────────────────────────────────────
 
-    public function listDisposals(): void
+    public function listDisposals(Request $request): void
     {
         $filters = [
-            'disposal_method' => $_GET['disposal_method'] ?? null,
-            'search'          => $_GET['search'] ?? null,
+            'disposal_method' => $request->query('disposal_method'),
+            'search'          => $request->query('search'),
         ];
         $disposals = $this->disposalModel->getAll(array_filter($filters));
         Response::success($disposals, 'Disposals retrieved');
     }
 
-    public function createDisposal(): void
+    public function createDisposal(Request $request): void
     {
-        $data = json_decode(file_get_contents('php://input'), true);
+        $data = $request->all();
 
         if (empty($data['asset_code']) || empty($data['condemnation_id'])) {
             Response::validationError(['asset_code and condemnation_id are required']);
             return;
         }
 
-        // Verify condemnation is approved
         $condemn = $this->condemnModel->getById($data['condemnation_id']);
         if (!$condemn || $condemn['status'] !== 'approved') {
             Response::error('Condemnation must be approved before disposal', 400);
             return;
         }
 
-        $data['disposed_by'] = $GLOBALS['auth_user']['id'];
+        $user = $request->user();
+        $data['disposed_by'] = $user['sub'] ?? null;
         $disposal = $this->disposalModel->store($data);
 
-        // Mark asset as disposed
-        $db = new \App\Core\Database();
-        $db->query("UPDATE assets SET status = 'disposed', updated_at = NOW() WHERE asset_code = ?", [$data['asset_code']]);
+        \App\Core\Database::getInstance()->query("UPDATE assets SET status = 'disposed', updated_at = NOW() WHERE asset_code = ?", [$data['asset_code']]);
 
-        Response::success($disposal, 'Disposal recorded', 201);
+        Response::created($disposal, 'Disposal recorded');
     }
 
-    public function disposalStats(): void
+    public function disposalStats(Request $request): void
     {
         $stats = $this->disposalModel->getStats();
         Response::success($stats, 'Disposal statistics');
