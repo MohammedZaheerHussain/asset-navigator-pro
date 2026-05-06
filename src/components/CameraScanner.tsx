@@ -1,7 +1,8 @@
 /**
- * CameraScanner — Mobile camera barcode scanning using html5-qrcode
+ * CameraScanner — Mobile camera QR code scanning using html5-qrcode
  *
  * Opens camera viewfinder in a modal overlay, auto-triggers on scan.
+ * Supports QR codes (primary) and barcodes (fallback).
  * Falls back gracefully if camera permission is denied.
  */
 
@@ -51,8 +52,8 @@ export function CameraScanner({ onScan, className }: CameraScannerProps) {
         { facingMode: "environment" },
         {
           fps: 10,
-          qrbox: { width: 280, height: 120 },
-          aspectRatio: 1.777,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
           disableFlip: false,
         },
         (decodedText) => {
@@ -119,7 +120,7 @@ export function CameraScanner({ onScan, className }: CameraScannerProps) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-white">
                 <Camera className="h-5 w-5" />
-                <span className="font-semibold text-lg">Scan Barcode</span>
+                <span className="font-semibold text-lg">Scan QR Code</span>
               </div>
               <button
                 onClick={() => setIsOpen(false)}
@@ -161,7 +162,7 @@ export function CameraScanner({ onScan, className }: CameraScannerProps) {
             {/* Instructions */}
             <div className="mt-4 text-center">
               <p className="text-white/60 text-xs">
-                Point your camera at a barcode. It will scan automatically.
+                Point your camera at a QR code. It will scan automatically.
               </p>
             </div>
           </div>

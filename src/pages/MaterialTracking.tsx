@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   Bell,
   Hash,
-  Barcode,
+  QrCode,
   ArrowRightLeft,
   Clock,
   User,
@@ -49,16 +49,17 @@ import {
 } from "@/lib/tracking-service";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 import { CameraScanner } from "@/components/CameraScanner";
+import { QRCodeDisplay } from "@/components/QRCodeDisplay";
 
 // ─── Tab Config ──────────────────────────────────────────────────
 
 const TABS: { id: TrackingMode; label: string; icon: typeof Search; placeholder: string; example: string }[] = [
   {
     id: "barcode",
-    label: "Barcode",
-    icon: Barcode,
-    placeholder: "Scan or enter barcode…",
-    example: "BAR001MRI2024",
+    label: "QR Code",
+    icon: QrCode,
+    placeholder: "Scan QR code or enter value…",
+    example: "AST-MED-001",
   },
   {
     id: "serial",
@@ -189,7 +190,7 @@ export default function MaterialTracking() {
     <>
       <PageHeader
         title="Material Tracking"
-        description="Locate assets instantly using barcode, serial, or asset code."
+        description="Locate assets instantly using QR code, serial number, or asset code."
       />
 
       <div className="pt-6 space-y-5 max-w-5xl">
@@ -293,7 +294,7 @@ export default function MaterialTracking() {
                 <Zap className="h-3 w-3" />
                 <span>
                   {mode === "barcode"
-                    ? "Barcode scanner ready — scan to auto-search"
+                    ? "QR scanner ready — scan to auto-search"
                     : `Try: ${currentTab.example}`}
                 </span>
               </div>
@@ -488,11 +489,11 @@ export default function MaterialTracking() {
                     onCopy={() => handleCopy(result.asset.serial, "serial")}
                   />
                 </DetailRow>
-                <DetailRow label="Barcode">
+                <DetailRow label="QR Code">
                   <CopyableCode
-                    value={result.asset.barcode || 'N/A'}
-                    copied={copiedField === "barcode"}
-                    onCopy={() => handleCopy(result.asset.barcode, "barcode")}
+                    value={result.asset.barcode || result.asset.id}
+                    copied={copiedField === "qrcode"}
+                    onCopy={() => handleCopy(result.asset.barcode || result.asset.id, "qrcode")}
                   />
                 </DetailRow>
                 <DetailRow label="Category" value={result.asset.category} />
@@ -590,6 +591,28 @@ export default function MaterialTracking() {
                 <DetailRow label="Registered" value={result.createdAt} />
               </DetailCard>
             </div>
+
+            {/* ── QR Code Card ────────────────────────────────── */}
+            <Card className="shadow-elegant">
+              <CardHeader className="flex-row items-center gap-3 space-y-0 pb-4">
+                <div className="h-9 w-9 rounded-xl bg-primary-soft text-primary flex items-center justify-center">
+                  <QrCode className="h-4.5 w-4.5" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Asset QR Code</CardTitle>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Scan this QR code to instantly track this asset
+                  </p>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <QRCodeDisplay
+                  value={result.asset.id}
+                  label={result.asset.name}
+                  size={220}
+                />
+              </CardContent>
+            </Card>
 
             {/* ── Unified History Timeline ─────────────────────── */}
             {result.history && result.history.length > 0 && (
