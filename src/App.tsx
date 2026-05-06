@@ -8,12 +8,14 @@ import Dashboard from "./pages/Dashboard";
 import BranchMaster from "./pages/BranchMaster";
 import DepartmentMaster from "./pages/DepartmentMaster";
 import MaterialMaster from "./pages/MaterialMaster";
+import CategoryMaster from "./pages/CategoryMaster";
 import AddAsset from "./pages/AddAsset";
 import AssetRegistry from "./pages/AssetRegistry";
 import MaterialTracking from "./pages/MaterialTracking";
 import MaterialTransfer from "./pages/MaterialTransfer";
 import EquipmentList from "./pages/EquipmentList";
 import Reports from "./pages/Reports";
+import Documents from "./pages/Documents";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -51,6 +53,7 @@ const App = () => (
             <Route path="/masters/branches" element={<BranchMaster />} />
             <Route path="/masters/departments" element={<DepartmentMaster />} />
             <Route path="/masters/materials" element={<MaterialMaster />} />
+            <Route path="/masters/categories" element={<CategoryMaster />} />
             <Route path="/assets/add" element={<AddAsset />} />
             <Route path="/assets/registry" element={<AssetRegistry />} />
             <Route path="/tracking" element={<MaterialTracking />} />
@@ -58,6 +61,7 @@ const App = () => (
             <Route path="/equipment/biomedical" element={<EquipmentList type="biomedical" />} />
             <Route path="/equipment/other" element={<EquipmentList type="other" />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/documents" element={<Documents />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

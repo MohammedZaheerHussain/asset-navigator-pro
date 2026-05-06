@@ -17,6 +17,7 @@ use App\Controllers\BranchController;
 use App\Controllers\DepartmentController;
 use App\Controllers\CategoryController;
 use App\Controllers\UserController;
+use App\Controllers\DocumentController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
 
@@ -63,6 +64,14 @@ $router->post('/api/assets', [AssetController::class, 'store'], $authMw);
 $router->get('/api/assets/{code}', [AssetController::class, 'show'], $authMw);
 $router->put('/api/assets/{code}', [AssetController::class, 'update'], $authMw);
 $router->delete('/api/assets/{code}', [AssetController::class, 'destroy'], $adminMw);
+
+// Documents (Invoices & Service Bills)
+$router->get('/api/documents', [DocumentController::class, 'index'], $authMw);
+$router->get('/api/documents/stats', [DocumentController::class, 'stats'], $authMw);
+$router->post('/api/documents', [DocumentController::class, 'store'], $authMw);
+$router->get('/api/documents/{id}', [DocumentController::class, 'show'], $authMw);
+$router->get('/api/documents/{id}/download', [DocumentController::class, 'download'], $authMw);
+$router->delete('/api/documents/{id}', [DocumentController::class, 'destroy'], $adminMw);
 
 // Dashboard
 $router->get('/api/dashboard/stats', [DashboardController::class, 'stats'], $authMw);
