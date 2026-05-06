@@ -151,3 +151,84 @@
   .shadow-elevated { box-shadow: var(--shadow-lg); }
   .shadow-glow { box-shadow: var(--shadow-glow); }
 }
+
+/* ─── Premium Sidebar Glassmorphism ──────────────────────────── */
+.sidebar-glass {
+  background: linear-gradient(
+    180deg,
+    hsl(220 25% 99%) 0%,
+    hsl(220 20% 97%) 50%,
+    hsl(225 22% 95%) 100%
+  ) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid hsl(220 16% 90% / 0.6) !important;
+  box-shadow:
+    4px 0 24px -4px hsl(222 30% 14% / 0.04),
+    1px 0 0 0 hsl(220 16% 92%);
+}
+
+.dark .sidebar-glass {
+  background: linear-gradient(
+    180deg,
+    hsl(222 30% 10%) 0%,
+    hsl(222 28% 8%) 50%,
+    hsl(225 25% 7%) 100%
+  ) !important;
+  border-right: 1px solid hsl(220 20% 18% / 0.8) !important;
+  box-shadow:
+    4px 0 32px -4px hsl(0 0% 0% / 0.3),
+    1px 0 0 0 hsl(222 20% 15%);
+}
+
+/* Smooth sidebar scroll */
+.sidebar-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: hsl(220 12% 80%) transparent;
+}
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: hsl(220 12% 82%);
+  border-radius: 100px;
+}
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: hsl(222 20% 22%);
+}
+
+/* Nav item micro-animations */
+.sidebar-nav-item {
+  position: relative;
+  overflow: hidden;
+}
+.sidebar-nav-item::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  background: radial-gradient(
+    circle at 20% 50%,
+    currentColor 0%,
+    transparent 70%
+  );
+}
+.sidebar-nav-item:hover::before {
+  opacity: 0.04;
+}
+
+/* Fade-in animation for content */
+@keyframes sidebar-fade-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-nav-item {
+  animation: sidebar-fade-in 300ms ease-out both;
+}
