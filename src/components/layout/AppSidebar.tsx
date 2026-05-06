@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
-  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package,
+  ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +76,15 @@ const sectionThemes: Record<string, SectionTheme> = {
     hoverBg: "hover:bg-emerald-500/8",
     labelColor: "text-emerald-500/70",
   },
+  Documents: {
+    accent: "rose",
+    activeBg: "bg-rose-500/12",
+    activeText: "text-rose-700 dark:text-rose-300",
+    activeIcon: "text-rose-600 dark:text-rose-400",
+    activeBorder: "border-l-rose-500",
+    hoverBg: "hover:bg-rose-500/8",
+    labelColor: "text-rose-500/70",
+  },
   Insights: {
     accent: "amber",
     activeBg: "bg-amber-500/12",
@@ -109,6 +118,9 @@ const sections: NavSection[] = [
   ]},
   { label: "Transactions", items: [
     { title: "Material Transfer", url: "/transactions/transfer", icon: ArrowLeftRight },
+  ]},
+  { label: "Documents", items: [
+    { title: "Invoices & Bills", url: "/documents", icon: Receipt },
   ]},
   { label: "Equipment", items: [
     { title: "Biomedical",       url: "/equipment/biomedical", icon: HeartPulse },
@@ -144,7 +156,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="flex flex-col leading-tight">
             <span className="font-bold text-[13px] text-sidebar-foreground tracking-tight">
-              Material Management
+              Asset & Material Management
             </span>
             <span className="text-[10px] uppercase tracking-[0.15em] text-sidebar-foreground/50 font-medium">
               SNHRC Hospital
