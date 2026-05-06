@@ -91,14 +91,14 @@ class ServiceController
         }
 
         $data = $request->all();
-        $updated = $this->serviceModel->update($id, $data);
+        $updated = $this->serviceModel->updateRecord($id, $data);
         Response::success($updated, 'Service record updated');
     }
 
     public function deleteService(Request $request): void
     {
         $id = (int) $request->param('id');
-        if ($this->serviceModel->destroy($id)) {
+        if ($this->serviceModel->deleteRecord($id)) {
             Response::success(null, 'Service record deleted');
         } else {
             Response::notFound('Service record not found');

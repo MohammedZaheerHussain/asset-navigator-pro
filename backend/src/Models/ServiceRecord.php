@@ -107,7 +107,7 @@ class ServiceRecord extends Model
         ]);
     }
 
-    public function update(int $id, array $data): ?array
+    public function updateRecord(int $id, array $data): ?array
     {
         $fields = [];
         $params = [];
@@ -130,7 +130,7 @@ class ServiceRecord extends Model
         return $this->db->fetch($sql, $params);
     }
 
-    public function destroy(int $id): bool
+    public function deleteRecord(int $id): bool
     {
         return $this->db->query("DELETE FROM {$this->table} WHERE id = ?", [$id])->rowCount() > 0;
     }
