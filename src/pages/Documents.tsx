@@ -4,6 +4,12 @@ import {
   File, Image, FileSpreadsheet, X, Plus, Eye, Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import "./Documents.css";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:8000") + "/api";
@@ -54,6 +60,7 @@ export default function Documents() {
   const [showUpload, setShowUpload] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewName, setPreviewName] = useState("");
 
@@ -165,6 +172,7 @@ export default function Documents() {
         const blob = new Blob([new Uint8Array(byteNumbers)], { type: mime_type });
         setPreviewUrl(URL.createObjectURL(blob));
         setPreviewName(doc.original_filename);
+        setShowPreview(true);
       }
     } catch {
       toast.error("Preview failed");
@@ -218,9 +226,9 @@ export default function Documents() {
             <p>Invoices, service bills & warranty documents</p>
           </div>
         </div>
-        <button className="docs-upload-btn" onClick={() => setShowUpload(true)}>
+        <Button onClick={() => setShowUpload(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus size={18} /> Upload Document
-        </button>
+        </Button>
       </div>
 
       {/* Filters */}
@@ -308,107 +316,110 @@ export default function Documents() {
         )}
       </div>
 
-      {/* Upload Modal */}
-      {showUpload && (
-        <div className="docs-modal-overlay" onClick={() => setShowUpload(false)}>
-          <div className="docs-modal" onClick={e => e.stopPropagation()}>
-            <div className="docs-modal-header">
-              <h2><Upload size={20} /> Upload Document</h2>
-              <button onClick={() => { setShowUpload(false); resetForm(); }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleUpload} className="docs-form">
-              {/* Drop zone */}
-              <div
-                className={`docs-dropzone ${dragActive ? "active" : ""} ${file ? "has-file" : ""}`}
-                onDragOver={e => { e.preventDefault(); setDragActive(true); }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={handleDrop}
-                onClick={() => document.getElementById("doc-file-input")?.click()}
-              >
-                {file ? (
-                  <div className="docs-file-preview">
-                    <FileText size={32} />
-                    <span>{file.name}</span>
-                    <span className="docs-file-size">{(file.size / 1024).toFixed(1)} KB</span>
-                    <button type="button" onClick={e => { e.stopPropagation(); setFile(null); }}>
-                      <X size={16} /> Remove
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Upload size={40} />
-                    <p>Drag & drop a file here, or click to browse</p>
-                    <span>PDF, Images, Word, Excel — Max 10MB</span>
-                  </>
-                )}
-                <input
-                  id="doc-file-input"
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
-                  onChange={e => e.target.files?.[0] && setFile(e.target.files[0])}
-                  hidden
-                />
-              </div>
-
-              <div className="docs-form-row">
-                <label>Title *</label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)}
-                       placeholder="e.g., Ventilator Invoice - April 2026" required />
-              </div>
-
-              <div className="docs-form-row-grid">
-                <div className="docs-form-row">
-                  <label>Document Type *</label>
-                  <select value={docType} onChange={e => setDocType(e.target.value)}>
-                    {DOC_TYPES.map(t => (
-                      <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                    ))}
-                  </select>
+      {/* Upload Dialog — standard Radix Dialog matching BranchMaster, CategoryMaster etc. */}
+      <Dialog open={showUpload} onOpenChange={(v) => { if (!v) { setShowUpload(false); resetForm(); } else { setShowUpload(true); } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>Upload an invoice, service bill, warranty, or other document.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpload} className="space-y-4">
+            {/* Drop zone */}
+            <div
+              className={`docs-dropzone ${dragActive ? "active" : ""} ${file ? "has-file" : ""}`}
+              onDragOver={e => { e.preventDefault(); setDragActive(true); }}
+              onDragLeave={() => setDragActive(false)}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById("doc-file-input")?.click()}
+            >
+              {file ? (
+                <div className="docs-file-preview">
+                  <FileText size={32} />
+                  <span>{file.name}</span>
+                  <span className="docs-file-size">{(file.size / 1024).toFixed(1)} KB</span>
+                  <button type="button" onClick={e => { e.stopPropagation(); setFile(null); }}>
+                    <X size={16} /> Remove
+                  </button>
                 </div>
-                <div className="docs-form-row">
-                  <label>Asset Code (optional)</label>
-                  <input type="text" value={assetCode} onChange={e => setAssetCode(e.target.value)}
-                         placeholder="e.g., SNHRC-001" />
-                </div>
-              </div>
-
-              <div className="docs-form-row">
-                <label>Notes (optional)</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                          placeholder="Any additional details..." rows={3} />
-              </div>
-
-              <div className="docs-form-actions">
-                <button type="button" className="docs-btn-cancel" onClick={() => { setShowUpload(false); resetForm(); }}>
-                  Cancel
-                </button>
-                <button type="submit" className="docs-btn-submit" disabled={uploading || !file || !title.trim()}>
-                  {uploading ? "Uploading..." : "Upload Document"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Preview Modal */}
-      {previewUrl && (
-        <div className="docs-modal-overlay" onClick={() => { setPreviewUrl(null); setPreviewName(""); }}>
-          <div className="docs-preview-modal" onClick={e => e.stopPropagation()}>
-            <div className="docs-modal-header">
-              <h2><Eye size={20} /> {previewName}</h2>
-              <button onClick={() => { setPreviewUrl(null); setPreviewName(""); }}><X size={20} /></button>
-            </div>
-            <div className="docs-preview-content">
-              {previewUrl && previewName.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                <img src={previewUrl} alt={previewName} />
               ) : (
-                <iframe src={previewUrl} title={previewName} />
+                <>
+                  <Upload size={40} />
+                  <p>Drag & drop a file here, or click to browse</p>
+                  <span>PDF, Images, Word, Excel — Max 10MB</span>
+                </>
               )}
+              <input
+                id="doc-file-input"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,.xls,.xlsx"
+                onChange={e => e.target.files?.[0] && setFile(e.target.files[0])}
+                hidden
+              />
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Title</Label>
+              <Input value={title} onChange={e => setTitle(e.target.value)}
+                     placeholder="e.g., Ventilator Invoice - April 2026" required />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Document Type</Label>
+                <select
+                  value={docType}
+                  onChange={e => setDocType(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  {DOC_TYPES.map(t => (
+                    <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Asset Code (optional)</Label>
+                <Input value={assetCode} onChange={e => setAssetCode(e.target.value)}
+                       placeholder="e.g., SNHRC-001" />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Notes (optional)</Label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                placeholder="Any additional details..."
+                rows={3}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setShowUpload(false); resetForm(); }}>Cancel</Button>
+              <Button type="submit" disabled={uploading || !file || !title.trim()} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                {uploading ? "Uploading…" : "Upload Document"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Dialog — same Radix Dialog pattern */}
+      <Dialog open={showPreview} onOpenChange={(v) => { if (!v) { setShowPreview(false); setPreviewUrl(null); setPreviewName(""); } }}>
+        <DialogContent className="sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>{previewName}</DialogTitle>
+            <DialogDescription>Document preview</DialogDescription>
+          </DialogHeader>
+          <div className="docs-preview-content">
+            {previewUrl && previewName.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+              <img src={previewUrl} alt={previewName} />
+            ) : previewUrl ? (
+              <iframe src={previewUrl} title={previewName} />
+            ) : null}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
