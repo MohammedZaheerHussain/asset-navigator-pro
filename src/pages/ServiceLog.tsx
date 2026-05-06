@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet, apiPost, apiPut, apiDelete } from "@/store/apiSlice";
+import { svcGet, svcPost, svcPut, svcDelete } from "@/lib/service-api";
 import {
   Wrench, Plus, Search, Calendar, IndianRupee, Filter,
   AlertTriangle, CheckCircle, Clock, Loader2, Pencil, Trash2,
@@ -82,9 +82,9 @@ export default function ServiceLog() {
     setLoading(true);
     try {
       const [svcRes, statsRes, assetsRes] = await Promise.all([
-        apiGet("/services"),
-        apiGet("/services/dashboard"),
-        apiGet("/assets"),
+        svcGet("/services"),
+        svcGet("/services/dashboard"),
+        svcGet("/assets"),
       ]);
       setRecords(svcRes.data || []);
       setStats(statsRes.data || null);
@@ -124,10 +124,10 @@ export default function ServiceLog() {
         parts_cost: parseFloat(form.parts_cost) || 0,
       };
       if (editId) {
-        await apiPut(`/services/${editId}`, payload);
+        await svcPut(`/services/${editId}`, payload);
         toast({ title: "Updated", description: "Service record updated" });
       } else {
-        await apiPost("/services", payload);
+        await svcPost("/services", payload);
         toast({ title: "Created", description: "Service record logged successfully" });
       }
       setDialogOpen(false);
@@ -141,7 +141,7 @@ export default function ServiceLog() {
   const handleDelete = async (id: number) => {
     if (!confirm("Delete this service record?")) return;
     try {
-      await apiDelete(`/services/${id}`);
+      await svcDelete(`/services/${id}`);
       toast({ title: "Deleted", description: "Service record removed" });
       fetchData();
     } catch (e) {

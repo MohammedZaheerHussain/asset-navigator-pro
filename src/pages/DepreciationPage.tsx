@@ -10,7 +10,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet, apiPost } from "@/store/apiSlice";
+import { svcGet, svcPost } from "@/lib/service-api";
 import {
   TrendingDown, Settings, Loader2, IndianRupee, Calendar, Percent,
 } from "lucide-react";
@@ -56,9 +56,9 @@ export default function Depreciation() {
     setLoading(true);
     try {
       const [cfgRes, rptRes, catRes] = await Promise.all([
-        apiGet("/depreciation/config"),
-        apiGet("/depreciation/report"),
-        apiGet("/categories"),
+        svcGet("/depreciation/config"),
+        svcGet("/depreciation/report"),
+        svcGet("/categories"),
       ]);
       setConfigs(cfgRes.data || []);
       setReport(rptRes.data || []);
@@ -78,7 +78,7 @@ export default function Depreciation() {
     }
     setSaving(true);
     try {
-      await apiPost("/depreciation/config", {
+      await svcPost("/depreciation/config", {
         category_id: parseInt(form.category_id),
         method: form.method,
         useful_life_years: parseInt(form.useful_life_years),

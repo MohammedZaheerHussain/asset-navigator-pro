@@ -11,7 +11,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet, apiPost, apiPut } from "@/store/apiSlice";
+import { svcGet, svcPost, svcPut } from "@/lib/service-api";
 import {
   Gavel, Plus, Loader2, Clock, CheckCircle, XCircle, AlertTriangle, Search,
 } from "lucide-react";
@@ -72,8 +72,8 @@ export default function CondemnationPage() {
     setLoading(true);
     try {
       const [reqRes, assetsRes] = await Promise.all([
-        apiGet("/condemnation"),
-        apiGet("/assets"),
+        svcGet("/condemnation"),
+        svcGet("/assets"),
       ]);
       setRequests(reqRes.data || []);
       setAssets((assetsRes.data || []).map((a: any) => ({ asset_code: a.asset_code, name: a.name })));
@@ -92,7 +92,7 @@ export default function CondemnationPage() {
     }
     setSaving(true);
     try {
-      await apiPost("/condemnation", form);
+      await svcPost("/condemnation", form);
       toast({ title: "Submitted", description: "Condemnation request submitted for review" });
       setCreateOpen(false);
       setForm({ asset_code: "", reason: "", reason_category: "beyond_repair" });
@@ -113,7 +113,7 @@ export default function CondemnationPage() {
     if (!reviewTarget) return;
     setSaving(true);
     try {
-      await apiPut(`/condemnation/${reviewTarget.id}/review`, reviewForm);
+      await svcPut(`/condemnation/${reviewTarget.id}/review`, reviewForm);
       toast({ title: "Reviewed", description: `Request ${reviewForm.status}` });
       setReviewOpen(false);
       fetchData();

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet, apiPost } from "@/store/apiSlice";
+import { svcGet, svcPost } from "@/lib/service-api";
 import {
   Trash2, Plus, Loader2, IndianRupee, PackageX,
 } from "lucide-react";
@@ -56,9 +56,9 @@ export default function DisposalPage() {
     setLoading(true);
     try {
       const [dispRes, statsRes, condRes] = await Promise.all([
-        apiGet("/disposal"),
-        apiGet("/disposal/stats"),
-        apiGet("/condemnation?status=approved"),
+        svcGet("/disposal"),
+        svcGet("/disposal/stats"),
+        svcGet("/condemnation?status=approved"),
       ]);
       setDisposals(dispRes.data || []);
       setStats(statsRes.data || null);
@@ -78,7 +78,7 @@ export default function DisposalPage() {
     }
     setSaving(true);
     try {
-      await apiPost("/disposal", {
+      await svcPost("/disposal", {
         ...form,
         condemnation_id: parseInt(form.condemnation_id),
         sale_amount: parseFloat(form.sale_amount) || 0,

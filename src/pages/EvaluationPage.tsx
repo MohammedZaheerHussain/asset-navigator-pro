@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { apiGet } from "@/store/apiSlice";
+import { svcGet } from "@/lib/service-api";
 import {
   AlertTriangle, Loader2, TrendingUp, ShieldAlert, CircleCheck,
 } from "lucide-react";
@@ -26,7 +26,7 @@ export default function Evaluation() {
   useEffect(() => {
     const fetch = async () => {
       try {
-        const res = await apiGet("/assets/flagged");
+        const res = await svcGet("/assets/flagged");
         setFlagged(res.data || []);
       } catch (e) {
         toast({ title: "Error", description: "Failed to load flagged assets", variant: "destructive" });
