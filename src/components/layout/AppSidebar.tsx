@@ -7,6 +7,7 @@ import {
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
   ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Receipt,
+  Wrench, TrendingDown, AlertTriangle, Gavel, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -85,6 +86,15 @@ const sectionThemes: Record<string, SectionTheme> = {
     hoverBg: "hover:bg-rose-500/8",
     labelColor: "text-rose-500/70",
   },
+  "Service & Depreciation": {
+    accent: "cyan",
+    activeBg: "bg-cyan-500/12",
+    activeText: "text-cyan-700 dark:text-cyan-300",
+    activeIcon: "text-cyan-600 dark:text-cyan-400",
+    activeBorder: "border-l-cyan-500",
+    hoverBg: "hover:bg-cyan-500/8",
+    labelColor: "text-cyan-500/70",
+  },
   Insights: {
     accent: "amber",
     activeBg: "bg-amber-500/12",
@@ -121,6 +131,13 @@ const sections: NavSection[] = [
   ]},
   { label: "Documents", items: [
     { title: "Invoices & Bills", url: "/documents", icon: Receipt },
+  ]},
+  { label: "Service & Depreciation", items: [
+    { title: "Service Log",     url: "/service/log",           icon: Wrench },
+    { title: "Depreciation",    url: "/service/depreciation",  icon: TrendingDown },
+    { title: "Evaluation",      url: "/service/evaluation",    icon: AlertTriangle },
+    { title: "Condemnation",    url: "/service/condemnation",  icon: Gavel },
+    { title: "Disposal",        url: "/service/disposal",      icon: Trash2 },
   ]},
   { label: "Equipment", items: [
     { title: "Biomedical",       url: "/equipment/biomedical", icon: HeartPulse },

@@ -16,6 +16,11 @@ import MaterialTransfer from "./pages/MaterialTransfer";
 import EquipmentList from "./pages/EquipmentList";
 import Reports from "./pages/Reports";
 import Documents from "./pages/Documents";
+import ServiceLog from "./pages/ServiceLog";
+import DepreciationPage from "./pages/DepreciationPage";
+import EvaluationPage from "./pages/EvaluationPage";
+import CondemnationPage from "./pages/CondemnationPage";
+import DisposalPage from "./pages/DisposalPage";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -62,6 +67,11 @@ const App = () => (
             <Route path="/equipment/other" element={<EquipmentList type="other" />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/documents" element={<Documents />} />
+            <Route path="/service/log" element={<ServiceLog />} />
+            <Route path="/service/depreciation" element={<DepreciationPage />} />
+            <Route path="/service/evaluation" element={<EvaluationPage />} />
+            <Route path="/service/condemnation" element={<CondemnationPage />} />
+            <Route path="/service/disposal" element={<DisposalPage />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
