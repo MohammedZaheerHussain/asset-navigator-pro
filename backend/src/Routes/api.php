@@ -18,6 +18,7 @@ use App\Controllers\DepartmentController;
 use App\Controllers\CategoryController;
 use App\Controllers\UserController;
 use App\Controllers\DocumentController;
+use App\Controllers\ServiceController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
 
@@ -114,3 +115,38 @@ $router->get('/api/reports/{id}/history', [ReportController::class, 'history'], 
 $router->get('/api/reports/{id}', [ReportController::class, 'show'], $authMw);
 $router->put('/api/reports/{id}', [ReportController::class, 'update'], $authMw);
 $router->delete('/api/reports/{id}', [ReportController::class, 'destroy'], $adminMw);
+
+// ============================================================
+// Service & Depreciation Management
+// ============================================================
+
+// Service Records
+$router->get('/api/services', [ServiceController::class, 'listServices'], $authMw);
+$router->get('/api/services/dashboard', [ServiceController::class, 'serviceDashboard'], $authMw);
+$router->post('/api/services', [ServiceController::class, 'createService'], $authMw);
+$router->get('/api/services/{id}', [ServiceController::class, 'getService'], $authMw);
+$router->put('/api/services/{id}', [ServiceController::class, 'updateService'], $authMw);
+$router->delete('/api/services/{id}', [ServiceController::class, 'deleteService'], $adminMw);
+$router->get('/api/assets/{code}/services', [ServiceController::class, 'getAssetServices'], $authMw);
+
+// Depreciation
+$router->get('/api/depreciation/config', [ServiceController::class, 'listDepreciationConfigs'], $authMw);
+$router->post('/api/depreciation/config', [ServiceController::class, 'upsertDepreciationConfig'], $adminMw);
+$router->get('/api/depreciation/report', [ServiceController::class, 'depreciationReport'], $authMw);
+$router->get('/api/assets/{code}/depreciation', [ServiceController::class, 'getAssetDepreciation'], $authMw);
+$router->get('/api/assets/{code}/valuation', [ServiceController::class, 'getAssetValuation'], $authMw);
+
+// Evaluation & Flagging
+$router->get('/api/assets/flagged', [ServiceController::class, 'flaggedAssets'], $authMw);
+
+// Condemnation Workflow
+$router->get('/api/condemnation', [ServiceController::class, 'listCondemnations'], $authMw);
+$router->post('/api/condemnation', [ServiceController::class, 'createCondemnation'], $authMw);
+$router->get('/api/condemnation/{id}', [ServiceController::class, 'getCondemnation'], $authMw);
+$router->put('/api/condemnation/{id}/review', [ServiceController::class, 'reviewCondemnation'], $adminMw);
+
+// Disposal
+$router->get('/api/disposal', [ServiceController::class, 'listDisposals'], $authMw);
+$router->post('/api/disposal', [ServiceController::class, 'createDisposal'], $adminMw);
+$router->get('/api/disposal/stats', [ServiceController::class, 'disposalStats'], $authMw);
+
