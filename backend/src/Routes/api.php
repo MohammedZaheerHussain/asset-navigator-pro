@@ -47,6 +47,8 @@ $adminMw = [AuthMiddleware::class, AdminMiddleware::class];
 // Auth - Protected
 $router->post('/api/auth/register', [AuthController::class, 'register'], $adminMw);
 $router->get('/api/auth/profile', [AuthController::class, 'profile'], $authMw);
+$router->put('/api/auth/profile', [AuthController::class, 'updateProfile'], $authMw);
+$router->post('/api/auth/change-password', [AuthController::class, 'changePassword'], $authMw);
 
 // Material Tracking (CRITICAL)
 $router->get('/api/track', [TrackingController::class, 'track'], $authMw);

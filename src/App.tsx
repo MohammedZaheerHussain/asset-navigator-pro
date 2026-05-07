@@ -21,18 +21,31 @@ import DepreciationPage from "./pages/DepreciationPage";
 import EvaluationPage from "./pages/EvaluationPage";
 import CondemnationPage from "./pages/CondemnationPage";
 import DisposalPage from "./pages/DisposalPage";
+import ProfilePage from "./pages/ProfilePage";
+import PreferencesPage from "./pages/PreferencesPage";
+import UserManagement from "./pages/UserManagement";
+import AuditLog from "./pages/admin/AuditLog";
+import SystemInfo from "./pages/admin/SystemInfo";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
-import { isAuthenticated } from "@/store/apiSlice";
+import { isAuthenticated, getUser } from "@/store/apiSlice";
 
 /** Guard: redirect to /login if not authenticated */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
+  return <>{children}</>;
+};
+
+/** Guard: redirect to / if not an admin */
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!isAuthenticated()) return <Navigate to="/login" replace />;
+  const user = getUser();
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -54,6 +67,7 @@ const App = () => (
               </ProtectedRoute>
             }
           >
+            {/* Core Pages */}
             <Route path="/" element={<Dashboard />} />
             <Route path="/masters/branches" element={<BranchMaster />} />
             <Route path="/masters/departments" element={<DepartmentMaster />} />
@@ -67,11 +81,22 @@ const App = () => (
             <Route path="/equipment/other" element={<EquipmentList type="other" />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/documents" element={<Documents />} />
+
+            {/* Service & Depreciation */}
             <Route path="/service/log" element={<ServiceLog />} />
             <Route path="/service/depreciation" element={<DepreciationPage />} />
             <Route path="/service/evaluation" element={<EvaluationPage />} />
             <Route path="/service/condemnation" element={<CondemnationPage />} />
             <Route path="/service/disposal" element={<DisposalPage />} />
+
+            {/* Account — all authenticated users */}
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/preferences" element={<PreferencesPage />} />
+
+            {/* Admin-only routes */}
+            <Route path="/admin/users" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="/admin/audit" element={<AdminRoute><AuditLog /></AdminRoute>} />
+            <Route path="/admin/system" element={<AdminRoute><SystemInfo /></AdminRoute>} />
           </Route>
 
           <Route path="*" element={<NotFound />} />

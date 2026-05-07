@@ -122,4 +122,58 @@ class AuthService
     {
         return $this->userModel->findSafe($userId);
     }
+
+    /**
+     * Update own profile (name, email, phone)
+     */
+    public function updateProfile(int $userId, array $data): array
+    {
+        $db = \App\Core\Database::getInstance();
+        $allowed = array_filter([
+            'full_name' => $data['full_name'] ?? null,
+            'email'     => $data['email'] ?? null,
+            'phone'     => $data['phone'] ?? null,
+        ], fn($v) => $v !== null);
+
+        if (empty($allowed)) {
+            return ['success' => false, 'message' => 'No fields to update'];
+        }
+
+        // Check email uniqueness if changing email
+        if (isset($allowed['email'])) {
+            $existing = $db->queryOne(
+                'SELECT id FROM users WHERE email = ? AND id != ?',
+                [$allowed['email'], $userId]
+            );
+            if ($existing) {
+                return ['success' => false, 'message' => 'Email already in use'];
+            }
+        }
+
+        $sets = implode(', ', array_map(fn($k) => "$k = ?", array_keys($allowed)));
+        $values = array_values($allowed);
+        $values[] = $userId;
+
+        $db->query("UPDATE users SET $sets, updated_at = NOW() WHERE id = ?", $values);
+
+        return ['success' => true, 'data' => $this->getProfile($userId)];
+    }
+
+    /**
+     * Change own password
+     */
+    public function changePassword(int $userId, string $currentPassword, string $newPassword): array
+    {
+        $db = \App\Core\Database::getInstance();
+        $user = $db->queryOne('SELECT password_hash FROM users WHERE id = ?', [$userId]);
+
+        if (!$user || !password_verify($currentPassword, $user['password_hash'])) {
+            return ['success' => false, 'message' => 'Current password is incorrect'];
+        }
+
+        $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
+        $db->query('UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', [$newHash, $userId]);
+
+        return ['success' => true];
+    }
 }

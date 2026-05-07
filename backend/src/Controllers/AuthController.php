@@ -66,4 +66,43 @@ class AuthController
             Response::notFound('User not found');
         }
     }
+
+    public function updateProfile(Request $request): void
+    {
+        $user = $request->user();
+        $errors = Validator::make($request->all(), [
+            'full_name' => 'nullable|string|max:100',
+            'email'     => 'nullable|email',
+            'phone'     => 'nullable|string|max:20',
+        ]);
+        if ($errors) { Response::validationError($errors); return; }
+
+        $result = $this->authService->updateProfile($user['sub'], $request->all());
+        if ($result['success']) {
+            Response::success($result['data'], 'Profile updated successfully');
+        } else {
+            Response::error($result['message'], 400);
+        }
+    }
+
+    public function changePassword(Request $request): void
+    {
+        $user = $request->user();
+        $errors = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:6',
+        ]);
+        if ($errors) { Response::validationError($errors); return; }
+
+        $result = $this->authService->changePassword(
+            $user['sub'],
+            $request->input('current_password'),
+            $request->input('new_password')
+        );
+        if ($result['success']) {
+            Response::success(null, 'Password changed successfully');
+        } else {
+            Response::error($result['message'], 400);
+        }
+    }
 }

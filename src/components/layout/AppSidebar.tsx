@@ -7,9 +7,10 @@ import {
 import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
   ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Receipt,
-  Wrench, TrendingDown, AlertTriangle, Gavel, Trash2,
+  Wrench, TrendingDown, AlertTriangle, Gavel, Trash2, Users, Activity, Cpu, Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getUser } from "@/store/apiSlice";
 
 // ─── Section Color Themes ─────────────────────────────────────────
 type SectionTheme = {
@@ -104,6 +105,15 @@ const sectionThemes: Record<string, SectionTheme> = {
     hoverBg: "hover:bg-amber-500/8",
     labelColor: "text-amber-500/70",
   },
+  Administration: {
+    accent: "amber",
+    activeBg: "bg-amber-500/15",
+    activeText: "text-amber-800 dark:text-amber-200",
+    activeIcon: "text-amber-700 dark:text-amber-300",
+    activeBorder: "border-l-amber-600",
+    hoverBg: "hover:bg-amber-500/10",
+    labelColor: "text-amber-600/80",
+  },
 };
 
 // ─── Navigation Config ────────────────────────────────────────────
@@ -148,12 +158,24 @@ const sections: NavSection[] = [
   ]},
 ];
 
+/** Admin-only navigation section */
+const adminSection: NavSection = {
+  label: "Administration",
+  items: [
+    { title: "User Management", url: "/admin/users",  icon: Users },
+    { title: "Audit Log",       url: "/admin/audit",  icon: Activity },
+    { title: "System Info",     url: "/admin/system", icon: Cpu },
+  ],
+};
+
 // ─── Main Sidebar Component ──────────────────────────────────────
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const currentUser = getUser();
+  const isAdmin = currentUser?.role === "admin";
 
   return (
     <Sidebar collapsible="icon" className="border-r-0 sidebar-glass">
@@ -246,6 +268,56 @@ export function AppSidebar() {
             </SidebarGroup>
           );
         })}
+
+        {/* ── Admin-Only Section ──────────────────────────────── */}
+        {isAdmin && (() => {
+          const section = adminSection;
+          const theme = sectionThemes.Administration;
+          return (
+            <SidebarGroup key="admin" className="mb-1">
+              {!collapsed && (
+                <SidebarGroupLabel className={cn(
+                  "text-[10px] font-bold uppercase tracking-[0.18em] px-3 mb-1 flex items-center gap-1.5",
+                  theme.labelColor
+                )}>
+                  <Crown className="h-3 w-3" />
+                  {section.label}
+                </SidebarGroupLabel>
+              )}
+              {collapsed && <div className="h-px bg-amber-500/30 mx-2 my-1.5" />}
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) => {
+                    const active = pathname === item.url || pathname.startsWith(item.url);
+                    return (
+                      <SidebarMenuItem key={item.url}>
+                        <SidebarMenuButton asChild tooltip={item.title}>
+                          <NavLink
+                            to={item.url}
+                            end
+                            className={cn(
+                              "flex items-center gap-3 rounded-xl px-3 py-2.5",
+                              "text-[13px] font-medium transition-all duration-200 ease-out group",
+                              "border-l-[3px]",
+                              active
+                                ? cn(theme.activeBg, theme.activeText, theme.activeBorder)
+                                : cn("border-l-transparent text-sidebar-foreground/60", theme.hoverBg, "hover:text-sidebar-foreground", "hover:translate-x-0.5")
+                            )}
+                          >
+                            <item.icon className={cn("h-[18px] w-[18px] shrink-0 transition-all duration-200",
+                              active ? theme.activeIcon : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground/80"
+                            )} />
+                            {!collapsed && <span className="truncate">{item.title}</span>}
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })()}
       </SidebarContent>
 
       {/* ── Logout Footer ──────────────────────────────────── */}

@@ -29,7 +29,7 @@ export interface Pagination {
 
 // Auth
 export interface LoginPayload { username: string; password: string }
-export interface AuthUser { id: number; username: string; email: string; full_name: string; role: "admin" | "staff" }
+export interface AuthUser { id: number; username: string; email: string; full_name: string; role: "admin" | "staff"; phone?: string | null; last_login?: string | null }
 export interface LoginData { token: string; user: AuthUser }
 
 // Dashboard
@@ -147,6 +147,12 @@ export const api = createApi({
     }),
     getProfile: build.query<ApiResponse<AuthUser>, void>({
       query: () => "/auth/profile",
+    }),
+    updateProfile: build.mutation<ApiResponse<AuthUser>, { full_name?: string; email?: string; phone?: string }>({
+      query: (body) => ({ url: "/auth/profile", method: "PUT", body }),
+    }),
+    changePassword: build.mutation<ApiResponse<null>, { current_password: string; new_password: string }>({
+      query: (body) => ({ url: "/auth/change-password", method: "POST", body }),
     }),
 
     // ── Dashboard ──
@@ -307,6 +313,8 @@ export const api = createApi({
 export const {
   useLoginMutation,
   useGetProfileQuery,
+  useUpdateProfileMutation,
+  useChangePasswordMutation,
   useGetDashboardStatsQuery,
   useGetAssetsByCategoryQuery,
   useGetAssetsByBranchQuery,

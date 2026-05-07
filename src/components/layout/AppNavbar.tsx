@@ -1,6 +1,6 @@
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { GlobalSearch } from "@/components/GlobalSearch";
-import { Bell, ChevronDown, ShieldCheck } from "lucide-react";
+import { Bell, ChevronDown, ShieldCheck, Crown, Settings, User } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -10,11 +10,14 @@ import {
 } from "@/components/ui/popover";
 import { useGetExpiringWarrantiesQuery } from "@/store/apiSlice";
 import { getUser, logout } from "@/store/apiSlice";
+import { useNavigate } from "react-router-dom";
 
 export function AppNavbar() {
   const { data: warRes } = useGetExpiringWarrantiesQuery(90);
   const alerts = warRes?.data?.slice(0, 5) || [];
   const user = getUser();
+  const navigate = useNavigate();
+  const isAdmin = user?.role === "admin";
 
   const initials = user?.full_name
     ? user.full_name.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase()
@@ -58,7 +61,14 @@ export function AppNavbar() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2.5 h-10 pl-1.5 pr-2.5 rounded-lg hover:bg-surface-muted transition-colors">
-              <div className="h-7 w-7 rounded-full bg-gradient-primary text-primary-foreground flex items-center justify-center text-xs font-bold">{initials}</div>
+              <div className="h-7 w-7 rounded-full bg-gradient-primary text-primary-foreground flex items-center justify-center text-xs font-bold relative">
+                {initials}
+                {isAdmin && (
+                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-amber-500 flex items-center justify-center">
+                    <Crown className="h-2 w-2 text-white" />
+                  </span>
+                )}
+              </div>
               <div className="hidden sm:flex flex-col items-start leading-tight">
                 <span className="text-xs font-semibold">{user?.full_name || "Admin"}</span>
                 <span className="text-[10px] text-muted-foreground capitalize">{user?.role || "admin"}</span>
@@ -79,8 +89,20 @@ export function AppNavbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Preferences</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/profile")} className="gap-2">
+              <User className="h-4 w-4" /> Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/preferences")} className="gap-2">
+              <Settings className="h-4 w-4" /> Preferences
+            </DropdownMenuItem>
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate("/admin/users")} className="gap-2 text-amber-700 font-medium">
+                  <Crown className="h-4 w-4 text-amber-600" /> Admin Panel
+                </DropdownMenuItem>
+              </>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem className="text-danger" onClick={logout}>Sign out</DropdownMenuItem>
           </DropdownMenuContent>
