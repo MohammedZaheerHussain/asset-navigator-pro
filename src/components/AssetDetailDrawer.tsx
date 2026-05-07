@@ -47,7 +47,7 @@ export function AssetDetailDrawer({ asset, onClose }: Props) {
     if (!asset) return;
     setSvcLoading(true);
     Promise.all([
-      svcGet(`/services/asset/${asset.asset_code}`).catch(() => ({ data: [] })),
+      svcGet(`/assets/${asset.asset_code}/services`).catch(() => ({ data: [] })),
       svcGet(`/assets/${asset.asset_code}/valuation`).catch(() => ({ data: null })),
     ]).then(([svcRes, valRes]) => {
       setSvcRecords(svcRes.data || []);

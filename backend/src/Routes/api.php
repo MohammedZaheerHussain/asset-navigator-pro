@@ -62,6 +62,7 @@ $router->patch('/api/users/{id}/status', [UserController::class, 'toggleStatus']
 // Assets
 $router->get('/api/assets', [AssetController::class, 'index'], $authMw);
 $router->post('/api/assets', [AssetController::class, 'store'], $authMw);
+$router->get('/api/assets/flagged', [ServiceController::class, 'flaggedAssets'], $authMw);
 $router->get('/api/assets/{code}', [AssetController::class, 'show'], $authMw);
 $router->put('/api/assets/{code}', [AssetController::class, 'update'], $authMw);
 $router->delete('/api/assets/{code}', [AssetController::class, 'destroy'], $adminMw);
@@ -136,8 +137,7 @@ $router->get('/api/depreciation/report', [ServiceController::class, 'depreciatio
 $router->get('/api/assets/{code}/depreciation', [ServiceController::class, 'getAssetDepreciation'], $authMw);
 $router->get('/api/assets/{code}/valuation', [ServiceController::class, 'getAssetValuation'], $authMw);
 
-// Evaluation & Flagging
-$router->get('/api/assets/flagged', [ServiceController::class, 'flaggedAssets'], $authMw);
+// Evaluation & Flagging (route registered before /api/assets/{code} to avoid conflict)
 
 // Condemnation Workflow
 $router->get('/api/condemnation', [ServiceController::class, 'listCondemnations'], $authMw);
