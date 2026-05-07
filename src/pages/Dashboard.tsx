@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid,
 } from "recharts";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import {
   useGetDashboardStatsQuery,
   useGetAssetsByCategoryQuery,
@@ -189,8 +191,66 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Service & Depreciation Summary */}
+        <ServiceDepWidget />
       </div>
     </>
+  );
+}
+
+/* ─── Service & Depreciation Dashboard Widget ──────────────── */
+function ServiceDepWidget() {
+  const [stats, setStats] = useState<any>(null);
+  const [flaggedCount, setFlaggedCount] = useState(0);
+
+  useEffect(() => {
+    import("@/lib/service-api").then(({ svcGet }) => {
+      svcGet("/services/dashboard").then((r) => setStats(r.data)).catch(() => {});
+      svcGet("/assets/flagged").then((r) => setFlaggedCount(r.data?.length || 0)).catch(() => {});
+    });
+  }, []);
+
+  if (!stats) return null;
+
+  return (
+    <Card className="shadow-elegant">
+      <CardHeader className="flex-row items-center justify-between">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Wrench className="h-4 w-4 text-cyan-600" />
+          Service & Depreciation
+        </CardTitle>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/service/log">View all</Link>
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{stats.total_records}</div>
+            <div className="text-xs text-muted-foreground">Service Records</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">₹{Number(stats.total_cost).toLocaleString("en-IN")}</div>
+            <div className="text-xs text-muted-foreground">Total Cost</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{stats.assets_serviced}</div>
+            <div className="text-xs text-muted-foreground">Assets Serviced</div>
+          </div>
+          <div className="text-center">
+            <div className={cn("text-2xl font-bold", flaggedCount > 0 ? "text-red-600" : "text-emerald-600")}>{flaggedCount}</div>
+            <div className="text-xs text-muted-foreground">Flagged Assets</div>
+          </div>
+        </div>
+        {flaggedCount > 0 && (
+          <div className="mt-3 p-2 rounded-lg bg-red-50 text-red-700 text-xs text-center">
+            ⚠ {flaggedCount} asset{flaggedCount > 1 ? "s" : ""} exceed service cost threshold —{" "}
+            <Link to="/service/evaluation" className="underline font-semibold">Review now</Link>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 

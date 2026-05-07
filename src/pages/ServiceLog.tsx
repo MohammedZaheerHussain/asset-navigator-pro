@@ -84,7 +84,7 @@ export default function ServiceLog() {
       const [svcRes, statsRes, assetsRes] = await Promise.all([
         svcGet("/services"),
         svcGet("/services/dashboard"),
-        svcGet("/assets"),
+        svcGet("/assets?per_page=500"),
       ]);
       setRecords(svcRes.data || []);
       setStats(statsRes.data || null);

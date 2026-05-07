@@ -1,9 +1,11 @@
+import { useState, useEffect } from "react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Wrench, MapPin, ArrowRightLeft, Tag, ShieldCheck } from "lucide-react";
+import { Calendar, Wrench, MapPin, ArrowRightLeft, Tag, ShieldCheck, TrendingDown, IndianRupee, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { svcGet } from "@/lib/service-api";
 
 // Asset type aligned with API response shape
 interface AssetData {
@@ -37,6 +39,23 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export function AssetDetailDrawer({ asset, onClose }: Props) {
+  const [svcRecords, setSvcRecords] = useState<any[]>([]);
+  const [valuation, setValuation] = useState<any>(null);
+  const [svcLoading, setSvcLoading] = useState(false);
+
+  useEffect(() => {
+    if (!asset) return;
+    setSvcLoading(true);
+    Promise.all([
+      svcGet(`/services/asset/${asset.asset_code}`).catch(() => ({ data: [] })),
+      svcGet(`/assets/${asset.asset_code}/valuation`).catch(() => ({ data: null })),
+    ]).then(([svcRes, valRes]) => {
+      setSvcRecords(svcRes.data || []);
+      setValuation(valRes.data || null);
+      setSvcLoading(false);
+    });
+  }, [asset?.asset_code]);
+
   if (!asset) return null;
 
   return (
@@ -55,15 +74,26 @@ export function AssetDetailDrawer({ asset, onClose }: Props) {
               <span className={cn("inline-flex items-center gap-1.5 rounded-full border font-medium px-2.5 py-0.5 text-xs capitalize", STATUS_BADGE[asset.status] || STATUS_BADGE.active)}>
                 {asset.status}
               </span>
+              {valuation && (
+                <span className={cn("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold",
+                  valuation.health_status === "healthy" ? "bg-emerald-50 text-emerald-700" :
+                  valuation.health_status === "warning" ? "bg-amber-50 text-amber-700" :
+                  "bg-red-50 text-red-700"
+                )}>
+                  {valuation.health_status === "healthy" ? "●" : valuation.health_status === "warning" ? "▲" : "▼"} {valuation.health_status}
+                </span>
+              )}
             </div>
           </SheetHeader>
         </div>
 
         <Tabs defaultValue="overview" className="px-6 pt-5 pb-6">
-          <TabsList className="grid grid-cols-3 w-full">
+          <TabsList className="grid grid-cols-5 w-full">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="location">Location</TabsTrigger>
             <TabsTrigger value="warranty">Warranty</TabsTrigger>
+            <TabsTrigger value="service">Service</TabsTrigger>
+            <TabsTrigger value="valuation">Valuation</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="mt-5 space-y-4">
@@ -95,6 +125,93 @@ export function AssetDetailDrawer({ asset, onClose }: Props) {
               <Row label="Created" value={asset.created_at?.substring(0, 10) || "—"} />
               <Row label="Last Updated" value={asset.updated_at?.substring(0, 10) || "—"} />
             </InfoCard>
+          </TabsContent>
+
+          {/* Service History Tab */}
+          <TabsContent value="service" className="mt-5 space-y-4">
+            {svcLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+              </div>
+            ) : svcRecords.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Wrench className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                <p>No service records for this asset</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="font-semibold">{svcRecords.length} Service Records</span>
+                  <span className="text-muted-foreground">
+                    Total: ₹{svcRecords.reduce((s: number, r: any) => s + Number(r.total_cost || 0), 0).toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {svcRecords.map((r: any) => (
+                    <div key={r.id} className="rounded-lg border p-3 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className={cn("px-2 py-0.5 rounded-full text-xs font-semibold",
+                            r.service_type === "corrective" ? "bg-red-50 text-red-600" :
+                            r.service_type === "preventive" ? "bg-emerald-50 text-emerald-600" :
+                            r.service_type === "calibration" ? "bg-blue-50 text-blue-600" :
+                            "bg-amber-50 text-amber-600"
+                          )}>
+                            {r.service_type}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(r.service_date).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        <span className="font-mono text-sm font-semibold">₹{Number(r.total_cost).toLocaleString("en-IN")}</span>
+                      </div>
+                      <p className="text-sm mt-1">{r.description}</p>
+                      {r.vendor_name && <p className="text-xs text-muted-foreground mt-0.5">Vendor: {r.vendor_name}</p>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </TabsContent>
+
+          {/* Valuation Tab */}
+          <TabsContent value="valuation" className="mt-5 space-y-4">
+            {svcLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin text-cyan-500" />
+              </div>
+            ) : !valuation ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <TrendingDown className="h-10 w-10 mx-auto mb-2 text-gray-300" />
+                <p>No depreciation config for this asset's category</p>
+              </div>
+            ) : (
+              <>
+                <InfoCard icon={IndianRupee} title="Book Value">
+                  <Row label="Purchase Cost" value={`₹${Number(valuation.purchase_cost).toLocaleString("en-IN")}`} />
+                  <Row label="Current Book Value" value={`₹${Number(valuation.current_book_value).toLocaleString("en-IN")}`} />
+                  <Row label="Total Depreciated" value={`₹${(Number(valuation.purchase_cost) - Number(valuation.current_book_value)).toLocaleString("en-IN")}`} />
+                  <Row label="Method" value={valuation.depreciation_method || "—"} />
+                </InfoCard>
+                <InfoCard icon={Wrench} title="Service Impact">
+                  <Row label="Total Service Cost" value={`₹${Number(valuation.total_service_cost).toLocaleString("en-IN")}`} />
+                  <Row label="Service / Book Ratio" value={`${valuation.service_cost_ratio}%`} />
+                  <Row label="Years Used" value={valuation.years_used || "—"} />
+                  <Row label="Remaining Life" value={valuation.remaining_life ? `${valuation.remaining_life} yrs` : "—"} />
+                </InfoCard>
+                <div className={cn("rounded-xl p-4 text-center font-semibold text-sm",
+                  valuation.health_status === "healthy" ? "bg-emerald-50 text-emerald-700 border border-emerald-200" :
+                  valuation.health_status === "warning" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                  "bg-red-50 text-red-700 border border-red-200"
+                )}>
+                  Health: {valuation.health_status?.toUpperCase()} — {
+                    valuation.health_status === "healthy" ? "Asset is performing well within threshold" :
+                    valuation.health_status === "warning" ? "Service costs approaching threshold limit" :
+                    "Service costs exceed threshold — consider condemnation"
+                  }
+                </div>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </SheetContent>

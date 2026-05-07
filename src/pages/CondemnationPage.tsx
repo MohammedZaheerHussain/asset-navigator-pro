@@ -73,7 +73,7 @@ export default function CondemnationPage() {
     try {
       const [reqRes, assetsRes] = await Promise.all([
         svcGet("/condemnation"),
-        svcGet("/assets"),
+        svcGet("/assets?per_page=500"),
       ]);
       setRequests(reqRes.data || []);
       setAssets((assetsRes.data || []).map((a: any) => ({ asset_code: a.asset_code, name: a.name })));

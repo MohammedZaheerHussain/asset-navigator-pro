@@ -1,58 +1,35 @@
 /**
- * Shared API helpers for Service & Depreciation pages
+ * Shared API helpers for Service & Depreciation pages.
+ * Matches the token/URL pattern used across the codebase.
  */
 const API_BASE = (import.meta.env.VITE_API_URL ?? "http://localhost:8000") + "/api";
 
 function getToken(): string {
-  try {
-    const auth = JSON.parse(localStorage.getItem("snhrc_auth") || "{}");
-    return auth.token || localStorage.getItem("snhrc_token") || "";
-  } catch {
-    return localStorage.getItem("snhrc_token") || "";
-  }
+  return localStorage.getItem("snhrc_token") || "";
 }
 
-function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
-  return { Authorization: `Bearer ${getToken()}`, ...extra };
+function headers(json = false): Record<string, string> {
+  const h: Record<string, string> = { Authorization: `Bearer ${getToken()}` };
+  if (json) h["Content-Type"] = "application/json";
+  return h;
 }
 
-export async function svcGet(path: string): Promise<any> {
-  const res = await fetch(`${API_BASE}${path}`, { headers: authHeaders() });
-  if (!res.ok) throw new Error(`GET ${path} failed: ${res.status}`);
-  return res.json();
-}
-
-export async function svcPost(path: string, body: any): Promise<any> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(body),
-  });
+async function handleRes(res: Response): Promise<any> {
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `POST ${path} failed: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `Request failed: ${res.status}`);
   }
   return res.json();
 }
 
-export async function svcPut(path: string, body: any): Promise<any> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "PUT",
-    headers: authHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `PUT ${path} failed: ${res.status}`);
-  }
-  return res.json();
-}
+export const svcGet = (path: string) =>
+  fetch(`${API_BASE}${path}`, { headers: headers() }).then(handleRes);
 
-export async function svcDelete(path: string): Promise<any> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    method: "DELETE",
-    headers: authHeaders(),
-  });
-  if (!res.ok) throw new Error(`DELETE ${path} failed: ${res.status}`);
-  return res.json();
-}
+export const svcPost = (path: string, body: any) =>
+  fetch(`${API_BASE}${path}`, { method: "POST", headers: headers(true), body: JSON.stringify(body) }).then(handleRes);
+
+export const svcPut = (path: string, body: any) =>
+  fetch(`${API_BASE}${path}`, { method: "PUT", headers: headers(true), body: JSON.stringify(body) }).then(handleRes);
+
+export const svcDelete = (path: string) =>
+  fetch(`${API_BASE}${path}`, { method: "DELETE", headers: headers() }).then(handleRes);
