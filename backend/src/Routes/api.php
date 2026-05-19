@@ -34,6 +34,41 @@ $router->get('/api/health', function ($request) {
     ], 'API is healthy');
 });
 
+// Database Migration (No Auth — run once after deploy)
+$router->get('/api/migrate', function ($request) {
+    try {
+        $db = \App\Core\Database::getInstance()->getConnection();
+        $migrationDir = __DIR__ . '/../../database';
+        $results = [];
+
+        // Run base schema first
+        $schemaFile = $migrationDir . '/schema.sql';
+        if (file_exists($schemaFile)) {
+            $db->exec(file_get_contents($schemaFile));
+            $results[] = 'schema.sql ✓';
+        }
+
+        // Then run all migration_*.sql files
+        $files = glob($migrationDir . '/migration_*.sql');
+        if ($files) {
+            sort($files);
+            foreach ($files as $file) {
+                $name = basename($file);
+                try {
+                    $db->exec(file_get_contents($file));
+                    $results[] = "$name ✓";
+                } catch (\Exception $e) {
+                    $results[] = "$name ✗ " . $e->getMessage();
+                }
+            }
+        }
+
+        \App\Core\Response::success(['migrations' => $results], 'Migrations complete');
+    } catch (\Exception $e) {
+        \App\Core\Response::error('Migration failed: ' . $e->getMessage(), 500);
+    }
+});
+
 // ============================================================
 // Authentication Routes (No Auth Required)
 // ============================================================

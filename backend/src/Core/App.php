@@ -31,48 +31,11 @@ class App
         $cors = new \App\Middleware\CorsMiddleware();
         $cors->handle($this->request);
 
-        // Auto-run database migrations (safe: all use IF NOT EXISTS)
-        $this->runMigrations();
-
         // Load API routes
         $this->loadRoutes();
 
         // Resolve and dispatch
         $this->router->resolve($this->request);
-    }
-
-    /**
-     * Run all migration SQL files from database/ directory.
-     * Each file uses CREATE TABLE IF NOT EXISTS so it's idempotent.
-     * Also runs schema.sql first to ensure base tables exist.
-     */
-    private function runMigrations(): void
-    {
-        try {
-            $db = Database::getInstance()->getConnection();
-            $migrationDir = __DIR__ . '/../../database';
-
-            // Run base schema first
-            $schemaFile = $migrationDir . '/schema.sql';
-            if (file_exists($schemaFile)) {
-                $db->exec(file_get_contents($schemaFile));
-            }
-
-            // Then run all migration_*.sql files
-            $files = glob($migrationDir . '/migration_*.sql');
-            if ($files) {
-                sort($files);
-                foreach ($files as $file) {
-                    $db->exec(file_get_contents($file));
-                }
-            }
-        } catch (\Exception $e) {
-            // Silently continue — migrations may have already been applied
-            // Log for debugging if APP_DEBUG is on
-            if (isset($_ENV['APP_DEBUG']) && $_ENV['APP_DEBUG'] === 'true') {
-                error_log('Migration notice: ' . $e->getMessage());
-            }
-        }
     }
 
     /**
