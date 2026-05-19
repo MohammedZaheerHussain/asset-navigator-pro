@@ -19,6 +19,7 @@ use App\Controllers\CategoryController;
 use App\Controllers\UserController;
 use App\Controllers\DocumentController;
 use App\Controllers\ServiceController;
+use App\Controllers\ProcurementController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
 
@@ -155,7 +156,6 @@ $router->get('/api/disposal/stats', [ServiceController::class, 'disposalStats'],
 // ============================================================
 // Procurement & Supply Management
 // ============================================================
-use App\Controllers\ProcurementController;
 
 // Suppliers
 $router->get('/api/suppliers/stats', [ProcurementController::class, 'supplierStats'], $authMw);
