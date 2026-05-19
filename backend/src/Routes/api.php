@@ -152,3 +152,31 @@ $router->get('/api/disposal', [ServiceController::class, 'listDisposals'], $auth
 $router->post('/api/disposal', [ServiceController::class, 'createDisposal'], $adminMw);
 $router->get('/api/disposal/stats', [ServiceController::class, 'disposalStats'], $authMw);
 
+// ============================================================
+// Procurement & Supply Management
+// ============================================================
+use App\Controllers\ProcurementController;
+
+// Suppliers
+$router->get('/api/suppliers/stats', [ProcurementController::class, 'supplierStats'], $authMw);
+$router->get('/api/suppliers', [ProcurementController::class, 'listSuppliers'], $authMw);
+$router->post('/api/suppliers', [ProcurementController::class, 'createSupplier'], $authMw);
+$router->get('/api/suppliers/{id}', [ProcurementController::class, 'getSupplier'], $authMw);
+$router->put('/api/suppliers/{id}', [ProcurementController::class, 'updateSupplier'], $authMw);
+$router->delete('/api/suppliers/{id}', [ProcurementController::class, 'deleteSupplier'], $adminMw);
+
+// Purchases
+$router->get('/api/purchases/stats', [ProcurementController::class, 'purchaseStats'], $authMw);
+$router->get('/api/purchases', [ProcurementController::class, 'listPurchases'], $authMw);
+$router->post('/api/purchases', [ProcurementController::class, 'createPurchase'], $authMw);
+$router->get('/api/purchases/{id}', [ProcurementController::class, 'getPurchase'], $authMw);
+$router->put('/api/purchases/{id}', [ProcurementController::class, 'updatePurchase'], $authMw);
+$router->post('/api/purchases/{id}/approve', [ProcurementController::class, 'approvePurchase'], $adminMw);
+$router->post('/api/purchases/{id}/reject', [ProcurementController::class, 'rejectPurchase'], $adminMw);
+$router->post('/api/purchases/{id}/generate-assets', [ProcurementController::class, 'generateAssets'], $adminMw);
+
+// Invoices
+$router->get('/api/purchases/{id}/invoices', [ProcurementController::class, 'listInvoicesForPurchase'], $authMw);
+$router->post('/api/purchases/{id}/invoices', [ProcurementController::class, 'uploadInvoice'], $authMw);
+$router->get('/api/invoices', [ProcurementController::class, 'listAllInvoices'], $authMw);
+$router->delete('/api/invoices/{id}', [ProcurementController::class, 'deleteInvoice'], $adminMw);

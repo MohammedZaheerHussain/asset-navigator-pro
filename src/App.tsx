@@ -26,6 +26,10 @@ import PreferencesPage from "./pages/PreferencesPage";
 import UserManagement from "./pages/UserManagement";
 import AuditLog from "./pages/admin/AuditLog";
 import SystemInfo from "./pages/admin/SystemInfo";
+import SupplierMaster from "./pages/procurement/SupplierMaster";
+import PurchaseEntry from "./pages/procurement/PurchaseEntry";
+import PurchaseRegistry from "./pages/procurement/PurchaseRegistry";
+import InvoiceManagement from "./pages/procurement/InvoiceManagement";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -88,6 +92,12 @@ const App = () => (
             <Route path="/service/evaluation" element={<EvaluationPage />} />
             <Route path="/service/condemnation" element={<CondemnationPage />} />
             <Route path="/service/disposal" element={<DisposalPage />} />
+
+            {/* Procurement */}
+            <Route path="/procurement/suppliers" element={<SupplierMaster />} />
+            <Route path="/procurement/purchase/new" element={<PurchaseEntry />} />
+            <Route path="/procurement/purchases" element={<PurchaseRegistry />} />
+            <Route path="/procurement/invoices" element={<InvoiceManagement />} />
 
             {/* Account — all authenticated users */}
             <Route path="/profile" element={<ProfilePage />} />

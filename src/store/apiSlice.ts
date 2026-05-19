@@ -103,7 +103,50 @@ export interface UserRow {
   last_login: string | null; created_at: string; updated_at: string;
 }
 export interface CreateUserPayload { username: string; email: string; password: string; full_name: string; role: "admin" | "staff"; phone?: string }
-export interface UpdateUserPayload { username?: string; email?: string; password?: string; full_name?: string; role?: "admin" | "staff"; phone?: string }
+export interface UpdateUserPayload { username?: string; email?: string; password?: string; full_name?: string; role: "admin" | "staff"; phone?: string }
+
+// Procurement
+export interface SupplierRow {
+  id: number; supplier_code: string; supplier_name: string; dealer_name: string | null;
+  supplier_type: string; contact_person: string | null; phone: string | null; alternate_phone: string | null;
+  email: string | null; address_line1: string | null; city: string | null; state: string | null;
+  pincode: string | null; gst_number: string | null; pan_number: string | null;
+  payment_terms: string | null; is_preferred: boolean; is_active: boolean; remarks: string | null;
+  total_purchases?: number; total_spend?: number; last_purchase_date?: string | null;
+}
+export interface SupplierStats { total: number; active: number; preferred: number }
+export interface PurchaseRow {
+  id: number; purchase_code: string; supplier_id: number; invoice_number: string | null;
+  invoice_date: string | null; purchase_date: string; receiving_branch_id: number;
+  receiving_department_id: number | null; subtotal: number; gst_amount: number;
+  discount_amount: number; grand_total: number; auto_generate_assets: boolean;
+  status: string; approved_by: number | null; approved_at: string | null;
+  purchase_notes: string | null; supplier_name?: string; branch_name?: string;
+  created_by_name?: string; approved_by_name?: string; item_count?: number;
+  invoice_count?: number; assets_generated?: number;
+  items?: PurchaseItemRow[]; invoices?: PurchaseInvoiceRow[];
+  generated_assets?: { asset_code: string; name: string }[];
+  timeline?: { event: string; date: string | null; by?: string; done: boolean }[];
+}
+export interface PurchaseItemRow {
+  id: number; item_name: string; category_id: number | null; category_name?: string;
+  quantity: number; unit_price: number; warranty_months: number; serial_prefix: string | null;
+  total_price: number; notes: string | null;
+}
+export interface PurchaseInvoiceRow {
+  id: number; purchase_id: number; file_name: string; file_path: string;
+  file_type: string | null; file_size: number | null;
+  uploaded_by_name?: string; uploaded_at: string;
+  purchase_code?: string; invoice_number?: string; grand_total?: number; supplier_name?: string;
+}
+export interface PurchaseStats { total: number; pending: number; total_spend: number; month_spend: number }
+export interface CreatePurchasePayload {
+  supplier_id: number; purchase_date: string; receiving_branch_id: number;
+  receiving_department_id?: number; invoice_number?: string; invoice_date?: string;
+  gst_amount?: number; discount_amount?: number; purchase_notes?: string;
+  auto_generate_assets?: boolean; status?: string;
+  items: { item_name: string; category_id?: number; quantity: number; unit_price: number; warranty_months?: number; serial_prefix?: string; notes?: string }[];
+}
 
 // ─── Token Helpers ──────────────────────────────────────────────
 
@@ -305,6 +348,58 @@ export const api = createApi({
       query: ({ id, status }) => ({ url: `/users/${id}/status`, method: "PATCH", body: { status } }),
       invalidatesTags: ["Users"],
     }),
+
+    // ── Procurement ──
+    getSuppliers: build.query<ApiResponse<SupplierRow[]>, { search?: string; type?: string; status?: string; page?: number; per_page?: number } | void>({
+      query: (p) => ({ url: "/suppliers", params: p || {} }),
+    }),
+    getSupplier: build.query<ApiResponse<SupplierRow>, number>({
+      query: (id) => `/suppliers/${id}`,
+    }),
+    getSupplierStats: build.query<ApiResponse<SupplierStats>, void>({
+      query: () => "/suppliers/stats",
+    }),
+    createSupplier: build.mutation<ApiResponse<SupplierRow>, Partial<SupplierRow>>({
+      query: (body) => ({ url: "/suppliers", method: "POST", body }),
+    }),
+    updateSupplier: build.mutation<ApiResponse<SupplierRow>, { id: number; data: Partial<SupplierRow> }>({
+      query: ({ id, data }) => ({ url: `/suppliers/${id}`, method: "PUT", body: data }),
+    }),
+    deleteSupplier: build.mutation<ApiResponse<null>, number>({
+      query: (id) => ({ url: `/suppliers/${id}`, method: "DELETE" }),
+    }),
+
+    getPurchases: build.query<ApiResponse<PurchaseRow[]>, { search?: string; supplier_id?: number; status?: string; from_date?: string; to_date?: string; page?: number; per_page?: number } | void>({
+      query: (p) => ({ url: "/purchases", params: p || {} }),
+    }),
+    getPurchase: build.query<ApiResponse<PurchaseRow>, number>({
+      query: (id) => `/purchases/${id}`,
+    }),
+    getPurchaseStats: build.query<ApiResponse<PurchaseStats>, void>({
+      query: () => "/purchases/stats",
+    }),
+    createPurchase: build.mutation<ApiResponse<PurchaseRow>, CreatePurchasePayload>({
+      query: (body) => ({ url: "/purchases", method: "POST", body }),
+    }),
+    updatePurchase: build.mutation<ApiResponse<PurchaseRow>, { id: number; data: Partial<CreatePurchasePayload> }>({
+      query: ({ id, data }) => ({ url: `/purchases/${id}`, method: "PUT", body: data }),
+    }),
+    approvePurchase: build.mutation<ApiResponse<PurchaseRow>, number>({
+      query: (id) => ({ url: `/purchases/${id}/approve`, method: "POST" }),
+    }),
+    rejectPurchase: build.mutation<ApiResponse<null>, number>({
+      query: (id) => ({ url: `/purchases/${id}/reject`, method: "POST" }),
+    }),
+    generatePurchaseAssets: build.mutation<ApiResponse<{ assets_generated: number; assets: { asset_code: string; name: string }[] }>, number>({
+      query: (id) => ({ url: `/purchases/${id}/generate-assets`, method: "POST" }),
+    }),
+
+    getAllInvoices: build.query<ApiResponse<PurchaseInvoiceRow[]>, { search?: string } | void>({
+      query: (p) => ({ url: "/invoices", params: p || {} }),
+    }),
+    deleteInvoice: build.mutation<ApiResponse<null>, number>({
+      query: (id) => ({ url: `/invoices/${id}`, method: "DELETE" }),
+    }),
   }),
 });
 
@@ -343,4 +438,21 @@ export const {
   useUpdateUserMutation,
   useDeleteUserMutation,
   useToggleUserStatusMutation,
+  // Procurement
+  useGetSuppliersQuery,
+  useGetSupplierQuery,
+  useGetSupplierStatsQuery,
+  useCreateSupplierMutation,
+  useUpdateSupplierMutation,
+  useDeleteSupplierMutation,
+  useGetPurchasesQuery,
+  useGetPurchaseQuery,
+  useGetPurchaseStatsQuery,
+  useCreatePurchaseMutation,
+  useUpdatePurchaseMutation,
+  useApprovePurchaseMutation,
+  useRejectPurchaseMutation,
+  useGeneratePurchaseAssetsMutation,
+  useGetAllInvoicesQuery,
+  useDeleteInvoiceMutation,
 } = api;

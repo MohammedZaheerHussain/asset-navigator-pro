@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Building2, Layers, PackagePlus, ListChecks, ScanLine,
   ArrowLeftRight, HeartPulse, Boxes, FileBarChart2, LogOut, Package, Receipt,
   Wrench, TrendingDown, AlertTriangle, Gavel, Trash2, Users, Activity, Cpu, Crown,
+  Truck, ShoppingCart, ClipboardList, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getUser } from "@/store/apiSlice";
@@ -105,6 +106,15 @@ const sectionThemes: Record<string, SectionTheme> = {
     hoverBg: "hover:bg-amber-500/8",
     labelColor: "text-amber-500/70",
   },
+  Procurement: {
+    accent: "teal",
+    activeBg: "bg-teal-500/12",
+    activeText: "text-teal-700 dark:text-teal-300",
+    activeIcon: "text-teal-600 dark:text-teal-400",
+    activeBorder: "border-l-teal-500",
+    hoverBg: "hover:bg-teal-500/8",
+    labelColor: "text-teal-500/70",
+  },
   Administration: {
     accent: "amber",
     activeBg: "bg-amber-500/15",
@@ -128,6 +138,12 @@ const sections: NavSection[] = [
     { title: "Branch Master",     url: "/masters/branches",    icon: Building2 },
     { title: "Department Master", url: "/masters/departments", icon: Layers },
     { title: "Material Master",   url: "/masters/materials",   icon: Package },
+  ]},
+  { label: "Procurement", items: [
+    { title: "Supplier Master",    url: "/procurement/suppliers",    icon: Truck },
+    { title: "Purchase Entry",     url: "/procurement/purchase/new", icon: ShoppingCart },
+    { title: "Purchase Registry",  url: "/procurement/purchases",   icon: ClipboardList },
+    { title: "Invoice Management", url: "/procurement/invoices",    icon: FileText },
   ]},
   { label: "Asset Management", items: [
     { title: "Add Asset",      url: "/assets/add",      icon: PackagePlus },
