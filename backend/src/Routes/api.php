@@ -41,14 +41,18 @@ $router->get('/api/migrate', function ($request) {
         $migrationDir = __DIR__ . '/../../database';
         $results = [];
 
-        // Run base schema first
+        // Run base schema first (may fail on existing DB — that's OK)
         $schemaFile = $migrationDir . '/schema.sql';
         if (file_exists($schemaFile)) {
-            $db->exec(file_get_contents($schemaFile));
-            $results[] = 'schema.sql ✓';
+            try {
+                $db->exec(file_get_contents($schemaFile));
+                $results[] = 'schema.sql ✓';
+            } catch (\Exception $e) {
+                $results[] = 'schema.sql ⚠ (already exists: ' . substr($e->getMessage(), 0, 80) . ')';
+            }
         }
 
-        // Then run all migration_*.sql files
+        // Then run all migration_*.sql files independently
         $files = glob($migrationDir . '/migration_*.sql');
         if ($files) {
             sort($files);
@@ -58,7 +62,13 @@ $router->get('/api/migrate', function ($request) {
                     $db->exec(file_get_contents($file));
                     $results[] = "$name ✓";
                 } catch (\Exception $e) {
-                    $results[] = "$name ✗ " . $e->getMessage();
+                    $msg = $e->getMessage();
+                    // If it's "already exists" that's fine
+                    if (strpos($msg, 'already exists') !== false) {
+                        $results[] = "$name ⚠ (already exists)";
+                    } else {
+                        $results[] = "$name ✗ " . substr($msg, 0, 120);
+                    }
                 }
             }
         }
