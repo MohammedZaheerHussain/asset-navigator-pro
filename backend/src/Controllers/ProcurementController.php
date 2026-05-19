@@ -9,11 +9,6 @@ use App\Core\Database;
 use App\Models\Supplier;
 use App\Models\Purchase;
 
-/**
- * Procurement Controller
- *
- * Handles Suppliers, Purchases, Items, Invoices, and Asset Generation.
- */
 class ProcurementController
 {
     private Supplier $supplierModel;
@@ -105,32 +100,28 @@ class ProcurementController
         $data['created_by'] = $request->user()['sub'] ?? null;
         $data['status'] = $data['status'] ?? 'draft';
 
-        // Calculate totals from items
+        // Calculate totals
         $subtotal = 0;
         foreach ($items as $item) {
             $subtotal += ($item['quantity'] ?? 1) * ($item['unit_price'] ?? 0);
         }
         $data['subtotal'] = $subtotal;
-        $data['grand_total'] = $subtotal + ($data['gst_amount'] ?? 0) - ($data['discount_amount'] ?? 0);
+        $data['grand_total'] = $subtotal + (float)($data['gst_amount'] ?? 0) - (float)($data['discount_amount'] ?? 0);
 
         $purchaseId = $this->purchaseModel->create($data);
 
         // Insert items
         foreach ($items as $item) {
-            $this->db->query(
-                "INSERT INTO purchase_items (purchase_id, item_name, category_id, quantity, unit_price, warranty_months, serial_prefix, notes)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [
-                    $purchaseId,
-                    $item['item_name'] ?? 'Unnamed Item',
-                    $item['category_id'] ?? null,
-                    $item['quantity'] ?? 1,
-                    $item['unit_price'] ?? 0,
-                    $item['warranty_months'] ?? 0,
-                    $item['serial_prefix'] ?? null,
-                    $item['notes'] ?? null,
-                ]
-            );
+            $this->db->insert('purchase_items', [
+                'purchase_id' => (int)$purchaseId,
+                'item_name' => $item['item_name'] ?? 'Unnamed Item',
+                'category_id' => $item['category_id'] ?? null,
+                'quantity' => (int)($item['quantity'] ?? 1),
+                'unit_price' => (float)($item['unit_price'] ?? 0),
+                'warranty_months' => (int)($item['warranty_months'] ?? 0),
+                'serial_prefix' => $item['serial_prefix'] ?? null,
+                'notes' => $item['notes'] ?? null,
+            ]);
         }
 
         $purchase = $this->purchaseModel->getDetail((int)$purchaseId);
@@ -159,19 +150,22 @@ class ProcurementController
         $items = $data['items'] ?? null;
         unset($data['items']);
 
-        // Update purchase header
         $this->purchaseModel->update($id, $data);
 
-        // Replace items if provided
         if ($items !== null) {
+            // Delete old items and re-insert
             $this->db->query("DELETE FROM purchase_items WHERE purchase_id = ?", [$id]);
             foreach ($items as $item) {
-                $this->db->query(
-                    "INSERT INTO purchase_items (purchase_id, item_name, category_id, quantity, unit_price, warranty_months, serial_prefix, notes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                    [$id, $item['item_name'] ?? '', $item['category_id'] ?? null, $item['quantity'] ?? 1,
-                     $item['unit_price'] ?? 0, $item['warranty_months'] ?? 0, $item['serial_prefix'] ?? null, $item['notes'] ?? null]
-                );
+                $this->db->insert('purchase_items', [
+                    'purchase_id' => $id,
+                    'item_name' => $item['item_name'] ?? '',
+                    'category_id' => $item['category_id'] ?? null,
+                    'quantity' => (int)($item['quantity'] ?? 1),
+                    'unit_price' => (float)($item['unit_price'] ?? 0),
+                    'warranty_months' => (int)($item['warranty_months'] ?? 0),
+                    'serial_prefix' => $item['serial_prefix'] ?? null,
+                    'notes' => $item['notes'] ?? null,
+                ]);
             }
             $this->purchaseModel->recalcTotals($id);
         }
@@ -182,8 +176,7 @@ class ProcurementController
     public function approvePurchase(Request $request): void
     {
         $id = (int)$request->param('id');
-        $existing = $this->purchaseModel->find($id);
-        if (!$existing) { Response::notFound('Purchase not found'); return; }
+        if (!$this->purchaseModel->find($id)) { Response::notFound('Purchase not found'); return; }
 
         $this->purchaseModel->update($id, [
             'status' => 'approved',
@@ -197,8 +190,7 @@ class ProcurementController
     public function rejectPurchase(Request $request): void
     {
         $id = (int)$request->param('id');
-        $existing = $this->purchaseModel->find($id);
-        if (!$existing) { Response::notFound('Purchase not found'); return; }
+        if (!$this->purchaseModel->find($id)) { Response::notFound('Purchase not found'); return; }
 
         $this->purchaseModel->update($id, [
             'status' => 'rejected',
@@ -227,26 +219,28 @@ class ProcurementController
         }
 
         // Check if assets already generated
-        $existingLinks = $this->db->queryOne(
+        $existingRow = $this->db->fetch(
             "SELECT COUNT(*) as c FROM purchase_asset_links WHERE purchase_id = ?", [$id]
         );
-        if ((int)$existingLinks['c'] > 0) {
+        if ((int)($existingRow['c'] ?? 0) > 0) {
             Response::error('Assets have already been generated for this purchase', 400);
             return;
         }
 
         $generated = [];
+        $userId = $request->user()['sub'] ?? null;
+
         foreach ($purchase['items'] as $item) {
             $categoryId = $item['category_id'];
             $qty = (int)$item['quantity'];
 
-            // Get category code prefix
-            $cat = $this->db->queryOne("SELECT name FROM categories WHERE id = ?", [$categoryId]);
+            // Get category prefix
+            $cat = $this->db->fetch("SELECT name FROM categories WHERE id = ?", [$categoryId]);
             $catPrefix = $cat ? strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $cat['name']), 0, 3)) : 'GEN';
 
             for ($i = 0; $i < $qty; $i++) {
                 // Generate unique asset code
-                $lastAsset = $this->db->queryOne(
+                $lastAsset = $this->db->fetch(
                     "SELECT asset_code FROM assets WHERE asset_code LIKE ? ORDER BY asset_code DESC LIMIT 1",
                     ["AST-$catPrefix-%"]
                 );
@@ -256,53 +250,60 @@ class ProcurementController
                 }
                 $assetCode = "AST-$catPrefix-" . str_pad($num, 3, '0', STR_PAD_LEFT);
 
-                // Calculate warranty expiry
+                // Warranty expiry
                 $warrantyExpiry = null;
                 if ($item['warranty_months'] > 0 && $purchase['purchase_date']) {
                     $warrantyExpiry = date('Y-m-d', strtotime($purchase['purchase_date'] . " + {$item['warranty_months']} months"));
                 }
 
                 // Serial number
-                $serial = $item['serial_prefix']
+                $serial = !empty($item['serial_prefix'])
                     ? $item['serial_prefix'] . '-' . str_pad($i + 1, 3, '0', STR_PAD_LEFT)
                     : null;
 
+                // Get department
+                $deptId = $purchase['receiving_department_id'];
+                if (!$deptId) {
+                    $deptRow = $this->db->fetch("SELECT id FROM departments WHERE branch_id = ? LIMIT 1", [$purchase['receiving_branch_id']]);
+                    $deptId = $deptRow ? (int)$deptRow['id'] : 1;
+                }
+
                 // Create asset
-                $this->db->query(
-                    "INSERT INTO assets (asset_code, name, description, category_id, serial_number, branch_id, department_id, status, purchase_date, purchase_cost, warranty_expiry, notes)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?, ?)",
-                    [
-                        $assetCode,
-                        $item['item_name'],
-                        "Auto-generated from purchase {$purchase['purchase_code']}",
-                        $categoryId,
-                        $serial,
-                        $purchase['receiving_branch_id'],
-                        $purchase['receiving_department_id'] ?? $this->getDefaultDept($purchase['receiving_branch_id']),
-                        $purchase['purchase_date'],
-                        $item['unit_price'],
-                        $warrantyExpiry,
-                        "Source: {$purchase['purchase_code']}, Item: {$item['item_name']}"
-                    ]
-                );
+                $this->db->insert('assets', [
+                    'asset_code' => $assetCode,
+                    'name' => $item['item_name'],
+                    'description' => "Auto-generated from purchase {$purchase['purchase_code']}",
+                    'category_id' => $categoryId,
+                    'serial_number' => $serial,
+                    'branch_id' => (int)$purchase['receiving_branch_id'],
+                    'department_id' => (int)$deptId,
+                    'status' => 'active',
+                    'purchase_date' => $purchase['purchase_date'],
+                    'purchase_cost' => (float)$item['unit_price'],
+                    'warranty_expiry' => $warrantyExpiry,
+                    'notes' => "Source: {$purchase['purchase_code']}",
+                ]);
 
                 // Link
-                $this->db->query(
-                    "INSERT INTO purchase_asset_links (purchase_id, purchase_item_id, asset_code) VALUES (?, ?, ?)",
-                    [$id, $item['id'], $assetCode]
-                );
+                $this->db->insert('purchase_asset_links', [
+                    'purchase_id' => $id,
+                    'purchase_item_id' => (int)$item['id'],
+                    'asset_code' => $assetCode,
+                ]);
 
                 // Activity log
-                $this->db->query(
-                    "INSERT INTO activity_logs (asset_code, action, details, performed_by) VALUES (?, 'created', ?::jsonb, ?)",
-                    [$assetCode, json_encode(['source' => 'procurement', 'purchase_code' => $purchase['purchase_code']]), $request->user()['sub'] ?? null]
-                );
+                $this->db->insert('activity_logs', [
+                    'asset_code' => $assetCode,
+                    'action' => 'created',
+                    'details' => json_encode(['source' => 'procurement', 'purchase_code' => $purchase['purchase_code']]),
+                    'performed_by' => $userId,
+                ]);
 
                 $generated[] = ['asset_code' => $assetCode, 'name' => $item['item_name']];
             }
         }
 
-        // Mark purchase completed
+        // Mark completed
         $this->purchaseModel->update($id, ['status' => 'completed', 'auto_generate_assets' => true]);
 
         Response::success([
@@ -311,18 +312,12 @@ class ProcurementController
         ], count($generated) . ' assets generated successfully');
     }
 
-    private function getDefaultDept(int $branchId): int
-    {
-        $dept = $this->db->queryOne("SELECT id FROM departments WHERE branch_id = ? LIMIT 1", [$branchId]);
-        return $dept ? (int)$dept['id'] : 1;
-    }
-
     // ─── INVOICES ───────────────────────────────────────────────
 
     public function listInvoicesForPurchase(Request $request): void
     {
         $id = (int)$request->param('id');
-        $invoices = $this->db->query(
+        $invoices = $this->db->fetchAll(
             "SELECT pi.*, u.full_name as uploaded_by_name FROM purchase_invoices pi
              LEFT JOIN users u ON pi.uploaded_by = u.id WHERE pi.purchase_id = ? ORDER BY pi.uploaded_at DESC", [$id]
         );
@@ -334,20 +329,15 @@ class ProcurementController
         $id = (int)$request->param('id');
         if (!$this->purchaseModel->find($id)) { Response::notFound('Purchase not found'); return; }
 
-        // For now, accept base64 file data or file URL
         $data = $request->all();
-        $this->db->query(
-            "INSERT INTO purchase_invoices (purchase_id, file_name, file_path, file_type, file_size, uploaded_by)
-             VALUES (?, ?, ?, ?, ?, ?)",
-            [
-                $id,
-                $data['file_name'] ?? 'invoice.pdf',
-                $data['file_path'] ?? '/uploads/invoices/' . $id . '_' . time(),
-                $data['file_type'] ?? 'application/pdf',
-                $data['file_size'] ?? 0,
-                $request->user()['sub'] ?? null,
-            ]
-        );
+        $this->db->insert('purchase_invoices', [
+            'purchase_id' => $id,
+            'file_name' => $data['file_name'] ?? 'invoice.pdf',
+            'file_path' => $data['file_path'] ?? '/uploads/invoices/' . $id . '_' . time(),
+            'file_type' => $data['file_type'] ?? 'application/pdf',
+            'file_size' => (int)($data['file_size'] ?? 0),
+            'uploaded_by' => $request->user()['sub'] ?? null,
+        ]);
 
         Response::created(null, 'Invoice uploaded');
     }
@@ -364,7 +354,7 @@ class ProcurementController
             $bindings = [$s, $s, $s, $s];
         }
 
-        $invoices = $this->db->query(
+        $invoices = $this->db->fetchAll(
             "SELECT pi.*, p.purchase_code, p.invoice_number, p.grand_total, s.supplier_name
              FROM purchase_invoices pi
              JOIN purchases p ON pi.purchase_id = p.id

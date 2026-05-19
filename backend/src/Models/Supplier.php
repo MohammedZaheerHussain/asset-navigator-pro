@@ -4,7 +4,7 @@ namespace App\Models;
 
 class Supplier extends Model
 {
-    protected string $table = 'suppliers';
+    protected $table = 'suppliers';
 
     public function list(array $params = []): array
     {
@@ -20,9 +20,9 @@ class Supplier extends Model
             $where[] = "supplier_type = ?";
             $bindings[] = $params['type'];
         }
-        if (isset($params['status'])) {
+        if (isset($params['status']) && $params['status'] !== '') {
             $where[] = "is_active = ?";
-            $bindings[] = $params['status'] === 'active';
+            $bindings[] = ($params['status'] === 'active');
         }
 
         $whereStr = implode(' AND ', $where);
@@ -30,8 +30,10 @@ class Supplier extends Model
         $perPage = min(100, max(1, (int)($params['per_page'] ?? 20)));
         $offset = ($page - 1) * $perPage;
 
-        $total = (int)$this->db->queryOne("SELECT COUNT(*) as c FROM {$this->table} WHERE $whereStr", $bindings)['c'];
-        $data = $this->db->query(
+        $countRow = $this->db->fetch("SELECT COUNT(*) as c FROM {$this->table} WHERE $whereStr", $bindings);
+        $total = (int)($countRow['c'] ?? 0);
+
+        $data = $this->db->fetchAll(
             "SELECT * FROM {$this->table} WHERE $whereStr ORDER BY supplier_name ASC LIMIT ? OFFSET ?",
             array_merge($bindings, [$perPage, $offset])
         );
@@ -44,7 +46,7 @@ class Supplier extends Model
         $supplier = $this->find($id);
         if (!$supplier) return null;
 
-        $stats = $this->db->queryOne(
+        $stats = $this->db->fetch(
             "SELECT COUNT(*) as total_purchases,
                     COALESCE(SUM(grand_total), 0) as total_spend,
                     MAX(purchase_date) as last_purchase_date
@@ -53,15 +55,15 @@ class Supplier extends Model
         );
 
         return array_merge($supplier, [
-            'total_purchases' => (int)$stats['total_purchases'],
-            'total_spend' => (float)$stats['total_spend'],
-            'last_purchase_date' => $stats['last_purchase_date'],
+            'total_purchases' => (int)($stats['total_purchases'] ?? 0),
+            'total_spend' => (float)($stats['total_spend'] ?? 0),
+            'last_purchase_date' => $stats['last_purchase_date'] ?? null,
         ]);
     }
 
     public function generateCode(): string
     {
-        $last = $this->db->queryOne("SELECT supplier_code FROM suppliers ORDER BY id DESC LIMIT 1");
+        $last = $this->db->fetch("SELECT supplier_code FROM suppliers ORDER BY id DESC LIMIT 1");
         $num = 1;
         if ($last && preg_match('/SUP-(\d+)/', $last['supplier_code'], $m)) {
             $num = (int)$m[1] + 1;
@@ -71,11 +73,12 @@ class Supplier extends Model
 
     public function stats(): array
     {
-        return $this->db->queryOne(
+        $row = $this->db->fetch(
             "SELECT COUNT(*) as total,
-                    COUNT(*) FILTER (WHERE is_active) as active,
-                    COUNT(*) FILTER (WHERE is_preferred) as preferred
+                    COUNT(*) FILTER (WHERE is_active = true) as active,
+                    COUNT(*) FILTER (WHERE is_preferred = true) as preferred
              FROM suppliers"
         );
+        return $row ?: ['total' => 0, 'active' => 0, 'preferred' => 0];
     }
 }

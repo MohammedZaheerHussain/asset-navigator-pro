@@ -102,8 +102,11 @@ CREATE INDEX IF NOT EXISTS idx_purchase_invoices_purchase ON purchase_invoices(p
 CREATE INDEX IF NOT EXISTS idx_purchase_asset_links_purchase ON purchase_asset_links(purchase_id);
 CREATE INDEX IF NOT EXISTS idx_purchase_asset_links_asset ON purchase_asset_links(asset_code);
 
--- TRIGGERS
+-- TRIGGERS (idempotent)
+DROP TRIGGER IF EXISTS trg_suppliers_updated_at ON suppliers;
 CREATE TRIGGER trg_suppliers_updated_at BEFORE UPDATE ON suppliers
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS trg_purchases_updated_at ON purchases;
 CREATE TRIGGER trg_purchases_updated_at BEFORE UPDATE ON purchases
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

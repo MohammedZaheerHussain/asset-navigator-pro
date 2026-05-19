@@ -4,7 +4,7 @@ namespace App\Models;
 
 class Purchase extends Model
 {
-    protected string $table = 'purchases';
+    protected $table = 'purchases';
 
     public function list(array $params = []): array
     {
@@ -38,12 +38,13 @@ class Purchase extends Model
         $perPage = min(100, max(1, (int)($params['per_page'] ?? 20)));
         $offset = ($page - 1) * $perPage;
 
-        $total = (int)$this->db->queryOne(
+        $countRow = $this->db->fetch(
             "SELECT COUNT(*) as c FROM purchases p JOIN suppliers s ON p.supplier_id = s.id WHERE $whereStr",
             $bindings
-        )['c'];
+        );
+        $total = (int)($countRow['c'] ?? 0);
 
-        $data = $this->db->query(
+        $data = $this->db->fetchAll(
             "SELECT p.*, s.supplier_name, s.supplier_code as supplier_code_ref,
                     b.name as branch_name, u.full_name as created_by_name,
                     au.full_name as approved_by_name,
@@ -65,7 +66,7 @@ class Purchase extends Model
 
     public function getDetail(int $id): ?array
     {
-        $purchase = $this->db->queryOne(
+        $purchase = $this->db->fetch(
             "SELECT p.*, s.supplier_name, s.supplier_code as supplier_code_ref, s.gst_number as supplier_gst,
                     b.name as branch_name, d.name as department_name,
                     u.full_name as created_by_name, au.full_name as approved_by_name
@@ -80,7 +81,7 @@ class Purchase extends Model
         );
         if (!$purchase) return null;
 
-        $purchase['items'] = $this->db->query(
+        $purchase['items'] = $this->db->fetchAll(
             "SELECT pi.*, c.name as category_name
              FROM purchase_items pi
              LEFT JOIN categories c ON pi.category_id = c.id
@@ -88,7 +89,7 @@ class Purchase extends Model
             [$id]
         );
 
-        $purchase['invoices'] = $this->db->query(
+        $purchase['invoices'] = $this->db->fetchAll(
             "SELECT pi.*, u.full_name as uploaded_by_name
              FROM purchase_invoices pi
              LEFT JOIN users u ON pi.uploaded_by = u.id
@@ -96,7 +97,7 @@ class Purchase extends Model
             [$id]
         );
 
-        $purchase['generated_assets'] = $this->db->query(
+        $purchase['generated_assets'] = $this->db->fetchAll(
             "SELECT pal.*, a.name as asset_name, a.status as asset_status
              FROM purchase_asset_links pal
              JOIN assets a ON pal.asset_code = a.asset_code
@@ -104,7 +105,6 @@ class Purchase extends Model
             [$id]
         );
 
-        // Timeline
         $purchase['timeline'] = $this->buildTimeline($purchase);
 
         return $purchase;
@@ -112,16 +112,16 @@ class Purchase extends Model
 
     private function buildTimeline(array $p): array
     {
-        $tl = [['event' => 'created', 'date' => $p['created_at'], 'by' => $p['created_by_name'], 'done' => true]];
+        $tl = [['event' => 'created', 'date' => $p['created_at'], 'by' => $p['created_by_name'] ?? null, 'done' => true]];
 
-        if ($p['status'] === 'pending' || $p['status'] === 'approved' || $p['status'] === 'completed') {
+        if (in_array($p['status'], ['pending', 'approved', 'completed'])) {
             $tl[] = ['event' => 'submitted', 'date' => $p['updated_at'], 'done' => true];
         }
 
-        if ($p['status'] === 'approved' || $p['status'] === 'completed') {
-            $tl[] = ['event' => 'approved', 'date' => $p['approved_at'], 'by' => $p['approved_by_name'], 'done' => true];
+        if (in_array($p['status'], ['approved', 'completed'])) {
+            $tl[] = ['event' => 'approved', 'date' => $p['approved_at'], 'by' => $p['approved_by_name'] ?? null, 'done' => true];
         } elseif ($p['status'] === 'rejected') {
-            $tl[] = ['event' => 'rejected', 'date' => $p['approved_at'], 'by' => $p['approved_by_name'], 'done' => true];
+            $tl[] = ['event' => 'rejected', 'date' => $p['approved_at'], 'by' => $p['approved_by_name'] ?? null, 'done' => true];
         } else {
             $tl[] = ['event' => 'approved', 'done' => false];
         }
@@ -144,7 +144,7 @@ class Purchase extends Model
     public function generateCode(): string
     {
         $year = date('Y');
-        $last = $this->db->queryOne(
+        $last = $this->db->fetch(
             "SELECT purchase_code FROM purchases WHERE purchase_code LIKE ? ORDER BY id DESC LIMIT 1",
             ["PUR-$year-%"]
         );
@@ -157,23 +157,31 @@ class Purchase extends Model
 
     public function recalcTotals(int $id): void
     {
-        $this->db->query(
-            "UPDATE purchases SET
-                subtotal = (SELECT COALESCE(SUM(quantity * unit_price), 0) FROM purchase_items WHERE purchase_id = ?),
-                grand_total = subtotal + gst_amount - discount_amount
-             WHERE id = ?",
-            [$id, $id]
+        $subtotalRow = $this->db->fetch(
+            "SELECT COALESCE(SUM(quantity * unit_price), 0) as subtotal FROM purchase_items WHERE purchase_id = ?",
+            [$id]
         );
+        $subtotal = (float)($subtotalRow['subtotal'] ?? 0);
+        $purchase = $this->find($id);
+        $gst = (float)($purchase['gst_amount'] ?? 0);
+        $discount = (float)($purchase['discount_amount'] ?? 0);
+        $grand = $subtotal + $gst - $discount;
+
+        $this->db->update('purchases', [
+            'subtotal' => $subtotal,
+            'grand_total' => $grand,
+        ], 'id = ?', [$id]);
     }
 
     public function stats(): array
     {
-        return $this->db->queryOne(
+        $row = $this->db->fetch(
             "SELECT COUNT(*) as total,
                     COUNT(*) FILTER (WHERE status = 'pending') as pending,
                     COALESCE(SUM(grand_total), 0) as total_spend,
                     COALESCE(SUM(grand_total) FILTER (WHERE purchase_date >= date_trunc('month', CURRENT_DATE)), 0) as month_spend
              FROM purchases"
         );
+        return $row ?: ['total' => 0, 'pending' => 0, 'total_spend' => 0, 'month_spend' => 0];
     }
 }
